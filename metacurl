@@ -68,10 +68,10 @@ class http_headerblock(object):
         n = self.get_duplicated_header(name)
         try:
             d = dateutil.parser.parse(n)
-            print d
             t = int(d.strftime("%s"))
+            print name,n,t
             return t
-        except ValueError:
+        except (ValueError,AttributeError):
             return None
 
     def __str__(self):
