@@ -245,12 +245,16 @@ class singlefile(object):
                 break
 
             self.server = hdr.get_single_header('Server')
-            self.etag = hdr.get_single_header('Etag').strip("\x22\x27")
+
+            try: self.etag = hdr.get_single_header('Etag').strip("\x22\x27")
+            except AttributeError: self.etag = None
+
             mimearr = hdr.get_single_header('Content-Type').split(';')
             try:
                 self.mimetype = mimearr[0].strip()
             except KeyError:
                 self.mimetype = None
+
             for k in mimearr[1:]:
                 if k.strip().upper()[0:8]=='CHARSET=':
                     # avoiding proper dequoting
