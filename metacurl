@@ -41,7 +41,7 @@ class http_headerblock(object):
 
     def __init__(self, pipe):
         self.lines = None #: list of header lines
-        self.h = {}
+        self.headers = {}
         self.http_ver = None #: HTTP version token
         self.status_code = None #: HTTP status code (3 digit)
         self.reason = None #: HTTP reason phrase
@@ -127,9 +127,20 @@ def savesinglefile(url,curlopts):
         all_args.append(url)
         run_curl = subprocess.Popen(all_args,stdout=subprocess.PIPE)
         hdr = http_headerblock(run_curl.stdout)
+
         # if via proxy, there might be a first HTTP response about the connection
-        if len(hdr.lines) == 0 and hdr.status_code == 200:
+        if None != hdr.lines and len(hdr.lines) == 0 and hdr.status_code == 200:
             hdr = http_headerblock(run_curl.stdout)
+
+        if None == hdr.lines:
+            res = run_curl.wait()
+            if res == 35:
+                print "! curl failed (code %d), try without -k"%(res,)
+            elif res == 60:
+                print "! curl failed (code %d), try with -k"%(res,)
+            else:
+                print "! curl failed (code %d)"
+            break
 
         ## check if redirect
         if (hdr.status_code / 100) == 3:
