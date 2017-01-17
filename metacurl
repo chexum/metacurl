@@ -204,7 +204,9 @@ class singlefile(object):
 
             # check if download is complete
             if hdr.status_code == 200:
-                # XXX check on-disk size too
+                statbuf = os.stat(self.tmpname)
+                if statbuf.st_size != expected_size:
+                    expected_size = statbuf.st_size
                 if expected_size is None or counted_size == expected_size:
                     os.rename(self.tmpname,self.filename)
                     self.filesize = int(counted_size)
