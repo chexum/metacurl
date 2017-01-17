@@ -233,6 +233,21 @@ class singlefile(object):
             break
         return None
 
+    def __del__(self):
+        print "deleting",self.tmpname,self.filename
+        try:
+            if self.tmpname:
+                os.remove(self.tmpname);
+                print "removed %s"%(self.tmpname)
+                self.tmpname = None
+        except OSError: pass
+        try:
+            if self.filename:
+                os.remove(self.filename)
+                print "removed %s (debugging)"%(self.filename)
+                self.filename = None
+        except OSError: pass
+
 ###########################################################################
 ###########################################################################
 
