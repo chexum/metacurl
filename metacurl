@@ -4,7 +4,7 @@ import subprocess,os,hashlib
 import tempfile
 import urlparse
 import re
-import datetime,dateutil.parser
+import datetime,dateutil.parser,time
 import argparse
 import json
 
@@ -245,6 +245,14 @@ class singlefile(object):
                 if hash_githash: hash_githash.update(buf)
             f.close()
 
+            self.stored = int(time.time())
+            try:
+                d = hdr.get_chrono_header('Date')
+                if abs(d-self.stored)<7200:
+                    self.stored = d
+            except:
+                pass
+
             # check if download is complete
             if hdr.status_code == 200:
                 statbuf = os.stat(self.tmpname)
@@ -300,7 +308,7 @@ class singlefile(object):
             print "-- charset:%s"%(self.charset)
             print "-- encoding:%s"%(self.charset)
             # url
-            # stored/present
+            print "-- stored:%s"%(self.stored)
             print "-- server:%s"%(self.server)
             print "-- etag:%s"%(self.etag)
 
