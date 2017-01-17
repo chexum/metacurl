@@ -106,15 +106,20 @@ def savesinglefile(url,curlopts):
     Process a single file by using curl and inspecting the output
     """
 
-    # XXX remove fragment (and keep it for hash spec)
-    parts = url.split('/')
-    if parts[-1] == '' or parts[-1][0] in '&?#':
+    if '#' in url:
+        ## TODO parse fragment for hash spec
+        [url,frag] = url.split('#',1)
+        url = url.split('#',1)[0]
+    else:
+        frag = None
+
+    # extract filename (without parameters)
+    parts = url.split('?',1)[0].split('/')
+    if parts[-1] == '' or parts[-1][0] in '&?#' or parts[-1] == 'download':
         hunk=parts[-2]
     else:
         hunk=parts[-1]
-    [hunk]=hunk.split('&',1); [hunk]=hunk.split('?',1); [hunk]=hunk.split('#',1)
     download_name=hunk
-
     download_type='fetching'
     while True:
         print "-- %s %s"%(download_type,url)
