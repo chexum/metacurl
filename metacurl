@@ -139,6 +139,7 @@ class singlefile(object):
         self.etag = None
         self.mimetype = None
         self.charset = None
+        self.encoding = None
         self.tmpname = None
 
         if '#' in url:
@@ -261,6 +262,8 @@ class singlefile(object):
                     # avoiding proper dequoting
                     self.charset = k[9:].strip("\x27\x22")
 
+            self.encoding = hdr.get_single_header('Content-Encoding')
+
             ## TODO compare with expected hashes
             ## TODO save in db
 
@@ -275,7 +278,7 @@ class singlefile(object):
             print "-- githash:%s"%(self.hashes[3])
             print "-- mimetype:%s"%(self.mimetype)
             print "-- charset:%s"%(self.charset)
-            # encoding
+            print "-- encoding:%s"%(self.charset)
             # url
             # stored/present
             print "-- server:%s"%(self.server)
