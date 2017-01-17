@@ -115,7 +115,11 @@ class http_headerblock(object):
         else:
             return None
 
-        (v,c,r)=l.split(None,2)
+        try:
+            (v,c,r)=l.split(None,2)
+        except ValueError:
+            (v,c)=l.split(None,1)
+            r='None given'
         (self_http_ver,self.status_code,self.reason)=(v,int(c),r.strip())
 
         # https://tools.ietf.org/html/rfc7230#section-3.1.2
