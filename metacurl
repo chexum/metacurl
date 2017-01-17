@@ -337,6 +337,11 @@ class singlefile(object):
         os.rename(self.tmpname,filename)
         self.tmpname = None
 
+        with open('.meta','a') as f:
+            f.write("\t".join([str(i) if i else '?' for i in \
+              [self.filename,self.filesize,self.stamp,self.hashes[0],self.mimetype,self.encoding,self.orig_url,self.stored,self.server,self.etag]])+"\n")
+            f.close()
+
     def __del__(self):
         try:
             if self.tmpname:
