@@ -130,9 +130,9 @@ class http_headerblock(object):
             if l == '':
                 break
             # XXX folding not tested
-            if l[0] in "\0x20\0x09":
+            if l[0] in "\x20\x09":
                 l = l.strip("\x20\x09")
-                if len(lines):
+                if len(lines)>0:
                     # not perfect for Set-Cookie, but that isn't in responses
                     lines[-1].append(" "+l)
                 else:
