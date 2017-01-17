@@ -4,6 +4,7 @@ import subprocess,os,hashlib
 import tempfile
 import urlparse
 import re
+import datetime,dateutil.parser
 import argparse
 import json
 
@@ -54,6 +55,23 @@ class http_headerblock(object):
         try:
             return int(n)
         except (ValueError,TypeError):
+            return None
+
+    def get_chrono_header(self,name):
+        """Retrieve time-specific field value"""
+#   Thu, 05 Sep 2002 08:34:38 GMT
+#   September, 08-Sun-02 13:51:43 GMT
+# Thursday, 19-Sep-02 13:41:10 GMT
+# November, 14-Thu-02 14:01:04 GMT
+# Monday, 25-Nov-102 12:49:26 GMT
+# Thu, 18 Dec 2003 01:32:51 GMT
+        n = self.get_duplicated_header(name)
+        try:
+            d = dateutil.parser.parse(n)
+            print d
+            t = int(d.strftime("%s"))
+            return t
+        except ValueError:
             return None
 
     def __str__(self):
@@ -246,6 +264,8 @@ class singlefile(object):
                 self.tmpname = None
                 break
 
+            self.stamp = hdr.get_chrono_header('Last-Modified')
+
             self.server = hdr.get_single_header('Server')
 
             try: self.etag = hdr.get_single_header('Etag').strip("\x22\x27")
@@ -268,8 +288,8 @@ class singlefile(object):
             ## TODO save in db
 
             print "-- file:%s"%(self.filename,)
-            print "-- stamp:" # FIXME
             print "-- size:%s"%(self.filesize,)
+            print "-- stamp:%s"%(self.stamp,)
             self.hashes=[hash_md5.hexdigest(),hash_sha1.hexdigest(),hash_sha256.hexdigest(),None]
             if hash_githash: self.hashes[3]=hash_githash.hexdigest()
             print "-- dig:%s"%self.hashes[0]
