@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import subprocess,os,hashlib
+import tempfile
 import urlparse
 import re
 import argparse
@@ -179,17 +180,17 @@ class singlefile(object):
             if expected_size:
                 hash_githash=hashlib.sha1()
                 hash_githash.update(b"blob %d\0"%(expected_size))
- 
-            ## TODO safe temporary name instead
-            self.tmpname='.%d.%d.meta'%(os.getpid(),1)
+
+            ## start downloading to a temporary file
             if hdr.status_code != 200:
                 self.error = "HTTP status %d %s"%(hdr.status_code,hdr.reason)
-                self.filename='.status%d.%d.%d.html'%(hdr.status_code,os.getpid(),1)
+                f = tempfile.mkstemp(prefix='.status%d'%(hdr.status),dir='.')
             else:
                 self.error = "downloading"
+                f = tempfile.mkstemp(prefix='.meta',dir='.')
+            self.tmpname = f[1]; f = os.fdopen(f[0],"w")
+            print self.tmpname,self.filename #XXX
 
-            print self.tmpname,self.filename
-            f = open(self.tmpname,'w')
             ## TODO progress
             counted_size = 0
             for buf in run_curl.stdout:
