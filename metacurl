@@ -169,17 +169,27 @@ def savesinglefile(url,curlopts):
 
         print invented_filename,download_name
         f = open(invented_filename,'w')
+        counted_size = 0
         for buf in run_curl.stdout:
             f.write(buf)
+            counted_size = counted_size + len(buf)
             hash_md5.update(buf)
             hash_sha1.update(buf)
             hash_sha256.update(buf)
             if hash_githash: hash_githash.update(buf)
         f.close()
+
+        # check if download is complete
         if hdr.status_code == 200:
-            os.rename(invented_filename,download_name)
+            if expected_size is None or counted_size == expected_size:
+                os.rename(invented_filename,download_name)
+            elif expected_size is not None:
+                print "! downloaded %d bytes of %d, failing"%(counted_size,expected_size)
+                os.remove(invented_filename)
+                break
         else:
             os.remove(invented_filename)
+            break
 
         print "-- md5:%s"%(hash_md5.hexdigest())
         print "-- sha1:%s"%(hash_sha1.hexdigest())
