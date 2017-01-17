@@ -242,7 +242,7 @@ class singlefile(object):
             ## TODO save in db
 
             print "-- file:%s"%(self.filename,)
-            print "-- file:%s"%(expected_size,)
+            print "-- size:%s"%(expected_size,)
             print "-- stamp:" # FIXME
             self.hashes=[hash_md5.hexdigest(),hash_sha1.hexdigest(),hash_sha256.hexdigest(),None]
             if hash_githash: self.hashes[3]=hash_githash.hexdigest()
