@@ -115,51 +115,53 @@ def savesinglefile(url,argarray):
     [hunk]=hunk.split('&',1); [hunk]=hunk.split('?',1); [hunk]=hunk.split('#',1)
     download_name=hunk
 
-    print "-- fetching",url
-    a = argarray[:]
-    a.append(url)
-    run_curl = subprocess.Popen(a,stdout=subprocess.PIPE)
-    hdr = http_headerblock(run_curl.stdout)
-    # if via proxy, there might be a first HTTP response about the connection
-    if len(hdr.lines) == 0 and hdr.status_code == 200:
+    while True:
+        print "-- fetching",url
+        a = argarray[:]
+        a.append(url)
+        run_curl = subprocess.Popen(a,stdout=subprocess.PIPE)
         hdr = http_headerblock(run_curl.stdout)
+        # if via proxy, there might be a first HTTP response about the connection
+        if len(hdr.lines) == 0 and hdr.status_code == 200:
+            hdr = http_headerblock(run_curl.stdout)
 
-    ## prepare to process body
-    ## check status code to not give a chance to save error pages
-    expected_size = hdr.content_length()
-    print "CL",hdr.status_code,expected_size
-    invented_filename='.%d.%d.meta'%(os.getpid(),1)
-    if hdr.status_code != 200:
-        download_name='.status%d.%d.%d.html'%(hdr.status_code,os.getpid(),1)
+        ## prepare to process body
+        ## check status code to not give a chance to save error pages
+        expected_size = hdr.content_length()
+        print "CL",hdr.status_code,expected_size
+        invented_filename='.%d.%d.meta'%(os.getpid(),1)
+        if hdr.status_code != 200:
+            download_name='.status%d.%d.%d.html'%(hdr.status_code,os.getpid(),1)
 
-    ## prepare hashing (git hash needs size beforehand)
-    hash_md5=hashlib.md5()
-    hash_sha1=hashlib.sha1()
-    hash_sha256=hashlib.sha256()
-    hash_githash=None
-    if expected_size:
-        hash_githash=hashlib.sha1()
-        hash_githash.update(b"blob %d\0"%(expected_size))
+        ## prepare hashing (git hash needs size beforehand)
+        hash_md5=hashlib.md5()
+        hash_sha1=hashlib.sha1()
+        hash_sha256=hashlib.sha256()
+        hash_githash=None
+        if expected_size:
+            hash_githash=hashlib.sha1()
+            hash_githash.update(b"blob %d\0"%(expected_size))
 
-    print invented_filename,download_name
-    f = open(invented_filename,'w')
-    for buf in run_curl.stdout:
-        f.write(buf)
-        hash_md5.update(buf)
-        hash_sha1.update(buf)
-        hash_sha256.update(buf)
-        if hash_githash: hash_githash.update(buf)
-    f.close()
-    if hdr.status_code == 200:
-        os.rename(invented_filename,download_name)
-    else:
-        os.remove(invented_filename)
+        print invented_filename,download_name
+        f = open(invented_filename,'w')
+        for buf in run_curl.stdout:
+            f.write(buf)
+            hash_md5.update(buf)
+            hash_sha1.update(buf)
+            hash_sha256.update(buf)
+            if hash_githash: hash_githash.update(buf)
+        f.close()
+        if hdr.status_code == 200:
+            os.rename(invented_filename,download_name)
+        else:
+            os.remove(invented_filename)
 
-    print "-- md5:%s"%(hash_md5.hexdigest())
-    print "-- sha1:%s"%(hash_sha1.hexdigest())
-    print "-- sha256:%s"%(hash_sha256.hexdigest())
-    if hash_githash:
-        print "-- githash:%s"%(hash_githash.hexdigest())
+        print "-- md5:%s"%(hash_md5.hexdigest())
+        print "-- sha1:%s"%(hash_sha1.hexdigest())
+        print "-- sha256:%s"%(hash_sha256.hexdigest())
+        if hash_githash:
+            print "-- githash:%s"%(hash_githash.hexdigest())
+        break
 
 ###########################################################################
 ###########################################################################
