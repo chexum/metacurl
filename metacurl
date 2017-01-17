@@ -88,7 +88,6 @@ class http_headerblock(object):
         try:
             d = dateutil.parser.parse(n)
             t = int(d.strftime("%s"))
-            print name,n,t
             return t
         except (ValueError,AttributeError):
             return None
@@ -236,7 +235,6 @@ class singlefile(object):
             ## prepare to process body
             ## check status code to not give a chance to save error pages
             expected_size = hdr.get_content_length()
-            print "CL",hdr.status_code,expected_size
 
             ## prepare hashing (git hash needs size beforehand)
             hash_md5=hashlib.md5()
@@ -255,7 +253,6 @@ class singlefile(object):
                 self.error = "downloading"
                 f = tempfile.mkstemp(prefix='.meta',dir='.')
             self.tmpname = f[1]; f = os.fdopen(f[0],"w")
-            print self.tmpname,self.filename #XXX
 
             ## TODO progress
             counted_size = 0
