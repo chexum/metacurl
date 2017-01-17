@@ -170,13 +170,6 @@ class singlefile(object):
             ## check status code to not give a chance to save error pages
             expected_size = hdr.content_length()
             print "CL",hdr.status_code,expected_size
-            ## TODO safe temporary name instead
-            self.tmpname='.%d.%d.meta'%(os.getpid(),1)
-            if hdr.status_code != 200:
-                self.error = "HTTP status %d %s"%(hdr.status_code,hdr.reason)
-                self.filename='.status%d.%d.%d.html'%(hdr.status_code,os.getpid(),1)
-            else:
-                self.error = "downloading"
 
             ## prepare hashing (git hash needs size beforehand)
             hash_md5=hashlib.md5()
@@ -186,6 +179,14 @@ class singlefile(object):
             if expected_size:
                 hash_githash=hashlib.sha1()
                 hash_githash.update(b"blob %d\0"%(expected_size))
+ 
+            ## TODO safe temporary name instead
+            self.tmpname='.%d.%d.meta'%(os.getpid(),1)
+            if hdr.status_code != 200:
+                self.error = "HTTP status %d %s"%(hdr.status_code,hdr.reason)
+                self.filename='.status%d.%d.%d.html'%(hdr.status_code,os.getpid(),1)
+            else:
+                self.error = "downloading"
 
             print self.tmpname,self.filename
             f = open(self.tmpname,'w')
