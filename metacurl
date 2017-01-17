@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
 import subprocess,os,hashlib
+import urlparse
+import re
 import argparse
 import json
 
@@ -113,7 +115,8 @@ def savesinglefile(url,curlopts):
     else:
         frag = None
 
-    # extract filename (without parameters)
+    # save original url and extract possible filename (without parameters)
+    orig_url = url
     parts = url.split('?',1)[0].split('/')
     if parts[-1] == '' or parts[-1][0] in '&?#' or parts[-1] == 'download':
         hunk=parts[-2]
@@ -145,9 +148,12 @@ def savesinglefile(url,curlopts):
         ## check if redirect
         if (hdr.status_code / 100) == 3:
             run_curl.kill()
-            url = hdr.headers['LOCATION'][0]
+            # TODO handle failure
+            loc = hdr.headers['LOCATION'][0]
+            # unsure
+            if ' ' in loc: loc = loc.replace(' ','%20')
+            url = urlparse.urljoin(url,loc)
             download_type='redirected to'
-            ### XXX relative redirect
             continue
 
         ## prepare to process body
