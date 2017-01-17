@@ -8,6 +8,7 @@ import datetime,dateutil.parser,time
 import platform
 import argparse
 import json
+import sqlite3
 
 
 ###########################################################################
@@ -342,12 +343,15 @@ class singlefile(object):
         os.rename(self.tmpname,filename)
         self.tmpname = None
 
+        ## 1/3 write .meta as text with some fields
+        ## order cannot be changed - append only (or rather ignore)
         with open('.meta','a') as f:
             f.write("\t".join([str(i) if i else '?' for i in \
               [self.filename,self.filesize,self.stamp,self.hashes[0],self.mimetype,self.encoding,self.orig_url,self.stored,self.server,self.etag]])+"\n")
             f.close()
 
-        # needs $FL -- or fails silently
+        ## 2/3 write per-user/host meta - may fail silently
+        ## can be extended interchangeably
         try:
             year = time.gmtime(self.stored).tm_year
         except TypeError:
@@ -360,6 +364,22 @@ class singlefile(object):
         with open ('%s/%04d-%s.meta'%(os.environ[FL],year,platform.node()[0:6]),"a") as flmeta:
             flmeta.write("%s\n"%(json.dumps(d,cls=MetaFLJSONEncoder)))
             flmeta.close()
+
+        ## 3/3 update database
+        try: conn = sqlite3.connect(os.environ['FLDB']); cur = conn.cursor()
+        except: conn, cur = None,None
+
+        if conn:
+            conn.execute("""
+            insert into meta
+            (path,fn,size,stamp,md5,sha1,sha256,githash,mimetype,mimecs,mimeenc,url,stored,server,etag)
+            values(?,?,?,datetime(?,'unixepoch'),?,?,?,?,?,?,?,?,datetime(?,'unixepoch'),?,?)""",\
+            (os.getcwd(),self.filename,self.filesize,self.stamp,\
+            self.hashes[0],self.hashes[1],self.hashes[2],self.hashes[3],\
+            self.mimetype,self.charset,self.encoding,self.orig_url,\
+            self.stored,self.server,self.etag));
+            conn.commit()
+            conn.close()
 
     def __del__(self):
         try:
