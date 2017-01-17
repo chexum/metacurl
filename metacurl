@@ -362,9 +362,12 @@ class singlefile(object):
         'githash':self.hashes[3],'mimetype':self.mimetype,'charset':self.charset,\
         'encoding':self.encoding,'url':self.orig_url,\
         'stored':self.stored,'server':self.server,'etag':self.etag}
-        with open ('%s/%04d-%s.meta'%(os.environ[FL],year,platform.node()[0:6]),"a") as flmeta:
-            flmeta.write("%s\n"%(json.dumps(d,cls=MetaFLJSONEncoder)))
-            flmeta.close()
+        try:
+            with open ('%s/%04d-%s.meta'%(os.environ[FL],year,platform.node()[0:6]),"a") as flmeta:
+                flmeta.write("%s\n"%(json.dumps(d,cls=MetaFLJSONEncoder)))
+                flmeta.close()
+        except:
+            pass
 
         ## 3/3 update database
         try: conn = sqlite3.connect(os.environ['FLDB']); cur = conn.cursor()
