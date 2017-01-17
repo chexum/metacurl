@@ -1,0 +1,228 @@
+#!/usr/bin/env python
+
+import subprocess,os,hashlib
+import argparse
+import json
+
+###########################################################################
+###########################################################################
+
+class http_headerblock(object):
+    """
+    HTTP header block, parsed from a pipe
+    http_headerblock(pipe)
+
+    Args:
+        pipe (handle): an input file handle
+
+    Attributes:
+        http_ver (str): HTTP version token
+        lines (list): list of header fields
+    """
+
+    def content_length(self):
+        """Content-Length: if there are multiple headers, return number
+        only if they all match"""
+        try:
+            allvalues = self.headers['CONTENT-LENGTH']
+            cl = int(allvalues[0])
+            for n in allvalues[1:]:
+                if int(n) != cl:
+                    return None
+            return cl
+        except (ValueError,KeyError):
+            return None
+
+    def __str__(self):
+        if self.http_ver:
+            return "* [%s] %s %s %s\n"%(len(self.lines),self.http_ver,self.status_code,self.reason)
+        else:
+            return "?"
+
+    def __init__(self, pipe):
+        self.lines = None #: list of header lines
+        self.h = {}
+        self.http_ver = None #: HTTP version token
+        self.status_code = None #: HTTP status code (3 digit)
+        self.reason = None #: HTTP reason phrase
+
+        # https://tools.ietf.org/html/rfc7230#section-3.1.2
+        # status-line = HTTP-version SP status-code SP reason-phrase CRLF
+        l=''
+        for l in pipe:
+            if l: l=l.rstrip("\x20\x09\r\n")
+            break
+        else:
+            return None
+
+        (v,c,r)=l.split(None,2)
+        (self_http_ver,self.status_code,self.reason)=(v,int(c),r.strip())
+
+        # https://tools.ietf.org/html/rfc7230#section-3.1.2
+        # header-field   = field-name ":" OWS field-value OWS
+        lines=[]
+        for l in pipe:
+            if l: l=l.rstrip("\r\n")
+            if l == '':
+                break
+            # XXX folding not tested
+            if l[0] in "\0x20\0x09":
+                l = l.strip("\x20\x09")
+                if len(lines):
+                    # not perfect for Set-Cookie, but that isn't in responses
+                    lines[-1].append(" "+l)
+                else:
+                    # replicate bogus field
+                    lines.append(" "+l)
+            else:
+                l = l.rstrip("\x20\x09")
+                lines.append(l)
+
+        # now parse the lines to header fields
+        h={}
+        for l in lines:
+            try:
+                (f,v)=l.split(':',1)
+                # field-name shouldn't have any, but anyway
+                f=f.strip("\x20\x09").upper()
+                v=v.strip("\x20\x09")
+                try:
+                    h[f].append(v)
+                except KeyError:
+                    h[f]=[v]
+            except ValueError:
+                # XXX really bad, but stay robust
+                pass
+
+        self.lines = lines
+        self.headers = h
+        return
+
+###########################################################################
+###########################################################################
+
+def savesinglefile(url,argarray):
+    """
+    Process a single file by using curl output
+    """
+
+    # XXX remove fragment (and keep it for hash spec)
+    print "-- fetching",url
+    a = argarray[:]
+    a.append(url)
+    run_curl = subprocess.Popen(a,stdout=subprocess.PIPE)
+    hdr = http_headerblock(run_curl.stdout)
+    # if via proxy, there might be a first HTTP response about the connection
+    if len(hdr.lines) == 0 and hdr.status_code == 200:
+        hdr = http_headerblock(run_curl.stdout)
+
+    ## prepare to process body
+    # XXX check status_code first
+    expected_size = hdr.content_length()
+    print "CL",hdr.status_code,expected_size
+
+    hash_md5=hashlib.md5()
+    hash_sha1=hashlib.sha1()
+    hash_sha256=hashlib.sha256()
+    hash_githash=None
+    if expected_size:
+        hash_githash=hashlib.sha1()
+        hash_githash.update(b"blob %d\0"%(expected_size))
+
+    parts = url.split('/')
+    if parts[-1] == '' or parts[-1][0] in '&?#':
+        hunk=parts[-2]
+    else:
+        hunk=parts[-1]
+    [hunk]=hunk.split('&',1); [hunk]=hunk.split('?',1); [hunk]=hunk.split('#',1)
+
+    invented_filename='.%d.%d.meta'%(os.getpid(),1)
+    print invented_filename,hunk
+    f = open(invented_filename,'w')
+    for buf in run_curl.stdout:
+        f.write(buf)
+        hash_md5.update(buf)
+        hash_sha1.update(buf)
+        hash_sha256.update(buf)
+        if hash_githash: hash_githash.update(buf)
+    f.close()
+    os.rename(invented_filename,hunk)
+
+    print "-- md5:%s"%(hash_md5.hexdigest())
+    print "-- sha1:%s"%(hash_sha1.hexdigest())
+    print "-- sha256:%s"%(hash_sha256.hexdigest())
+    if hash_githash:
+        print "-- githash:%s"%(hash_githash.hexdigest())
+
+###########################################################################
+###########################################################################
+
+def main():
+    parser = argparse.ArgumentParser(description='Wrapper for curl to keep HTTP metadata',prog='metacurl')
+## grep E\} src/tool_getparam.c|sed 's/[{} "]//g'
+    # vvv
+    ## Oa,remote-name-all,FALSE,
+    ## r,range,TRUE,                                                                                                                                 R,remote-time,FALSE,
+    ## s,silent,FALSE,                                                                                                                               S,show-error,FALSE,
+    # i,include,FALSE,
+    # k,insecure,FALSE,
+    # K,config,TRUE,
+    # H,header,TRUE,
+    # Hp,proxy-header,TRUE,
+    # D,dump-header,TRUE,
+    parser.add_argument('-i','--include',action='store_true')
+    parser.add_argument('--remote-name-all',action='store_true')
+    parser.add_argument('-s','--silent',action='store_true')
+    parser.add_argument('-r','--range')
+    parser.add_argument('-k','--insecure',action='store_true')
+    parser.add_argument('-K','--config')
+    parser.add_argument('-H','--header',action='append')
+    parser.add_argument('--data-binary',action='append')
+    parser.add_argument('--proxy-header',action='store_true')
+    parser.add_argument('--compressed',action='store_true')
+    parser.add_argument('--socks5-hostname')
+    parser.add_argument('-D','--dump-header')
+    # ^^^
+    # --2.0 ignored for compatibility
+    # -s should be always there (silent)
+    # -o should not be present (output)
+    parser.add_argument('--2.0',action='store_const',const=False,default=False)
+    # debug?
+    parser.add_argument('URL',nargs='+')
+    args = parser.parse_args()
+    # XXX path for curl
+    curl_args=["curl","-s","-i"]
+    enc=json.JSONEncoder()
+
+    print args
+    for i,v in args.__dict__.items():
+      if isinstance(v,list):
+        for n in v:
+          print '-- %s'%(i,),enc.encode(n)
+      elif i in ['2_0','dump_header','silent','include']:
+        if v:
+          print "-- option %s stripped"%(i,)
+        # silent and include will be added always
+        pass
+      elif v==True:
+        curl_args.append('--%s'%(i,))
+      elif v:
+        curl_args.append('--%s=%s'%(i.replace('_','-'),v,))
+
+    ## XXX add default headers (UA)
+    curl_args.append('--')
+
+    for url in args.URL:
+        savesinglefile(url,curl_args)
+
+###########################################################################
+###########################################################################
+
+def curlopts():
+	pass
+
+###########################################################################
+###########################################################################
+
+if __name__ == '__main__':
+  main()
