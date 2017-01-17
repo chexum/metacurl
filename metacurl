@@ -448,6 +448,7 @@ def main():
             curl_args.extend(['--%s'%(i.replace('_','-')),'%s'%(v,)])
 
     ## XXX add default headers (UA)
+    curl_args.extend(['--socks5-hostname',os.getenv('SOCKS5')])
     curl_args.append('--')
 
     for url in args.URL:
