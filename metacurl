@@ -338,10 +338,11 @@ class singlefile(object):
             return None
         except OSError:
             pass
-        print "keeping %s"%(filename)
+
         self.filename = filename
         os.rename(self.tmpname,filename)
         self.tmpname = None
+        print "\r%s (%d)"%(filename,self.filesize)
 
         ## 1/3 write .meta as text with some fields
         ## order cannot be changed - append only (or rather ignore)
