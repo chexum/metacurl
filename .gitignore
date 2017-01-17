@@ -2,3 +2,4 @@
 .DS_Store
 robots.txt
 .*.meta
+.status.*

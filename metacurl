@@ -103,10 +103,18 @@ class http_headerblock(object):
 
 def savesinglefile(url,argarray):
     """
-    Process a single file by using curl output
+    Process a single file by using curl and inspecting the output
     """
 
     # XXX remove fragment (and keep it for hash spec)
+    parts = url.split('/')
+    if parts[-1] == '' or parts[-1][0] in '&?#':
+        hunk=parts[-2]
+    else:
+        hunk=parts[-1]
+    [hunk]=hunk.split('&',1); [hunk]=hunk.split('?',1); [hunk]=hunk.split('#',1)
+    download_name=hunk
+
     print "-- fetching",url
     a = argarray[:]
     a.append(url)
@@ -117,10 +125,14 @@ def savesinglefile(url,argarray):
         hdr = http_headerblock(run_curl.stdout)
 
     ## prepare to process body
-    # XXX check status_code first
+    ## check status code to not give a chance to save error pages
     expected_size = hdr.content_length()
     print "CL",hdr.status_code,expected_size
+    invented_filename='.%d.%d.meta'%(os.getpid(),1)
+    if hdr.status_code != 200:
+        download_name='.status%d.%d.%d.html'%(hdr.status_code,os.getpid(),1)
 
+    ## prepare hashing (git hash needs size beforehand)
     hash_md5=hashlib.md5()
     hash_sha1=hashlib.sha1()
     hash_sha256=hashlib.sha256()
@@ -129,15 +141,7 @@ def savesinglefile(url,argarray):
         hash_githash=hashlib.sha1()
         hash_githash.update(b"blob %d\0"%(expected_size))
 
-    parts = url.split('/')
-    if parts[-1] == '' or parts[-1][0] in '&?#':
-        hunk=parts[-2]
-    else:
-        hunk=parts[-1]
-    [hunk]=hunk.split('&',1); [hunk]=hunk.split('?',1); [hunk]=hunk.split('#',1)
-
-    invented_filename='.%d.%d.meta'%(os.getpid(),1)
-    print invented_filename,hunk
+    print invented_filename,download_name
     f = open(invented_filename,'w')
     for buf in run_curl.stdout:
         f.write(buf)
@@ -146,7 +150,10 @@ def savesinglefile(url,argarray):
         hash_sha256.update(buf)
         if hash_githash: hash_githash.update(buf)
     f.close()
-    os.rename(invented_filename,hunk)
+    if hdr.status_code == 200:
+        os.rename(invented_filename,download_name)
+    else:
+        os.remove(invented_filename)
 
     print "-- md5:%s"%(hash_md5.hexdigest())
     print "-- sha1:%s"%(hash_sha1.hexdigest())
