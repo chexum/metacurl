@@ -131,6 +131,14 @@ def savesinglefile(url,curlopts):
         if len(hdr.lines) == 0 and hdr.status_code == 200:
             hdr = http_headerblock(run_curl.stdout)
 
+        ## check if redirect
+        if (hdr.status_code / 100) == 3:
+            run_curl.kill()
+            url = hdr.headers['LOCATION'][0]
+            download_type='redirected to'
+            ### XXX relative redirect
+            continue
+
         ## prepare to process body
         ## check status code to not give a chance to save error pages
         expected_size = hdr.content_length()
