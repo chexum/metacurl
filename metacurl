@@ -5,8 +5,27 @@ import tempfile
 import urlparse
 import re
 import datetime,dateutil.parser,time
+import platform
 import argparse
 import json
+
+
+###########################################################################
+###########################################################################
+
+# environment name for user's meta filelist directory
+FL='FLMETADIR'
+N_ALL=['file','size','stamp','md5','sha1','sha256','githash','mimetype','charset','encoding','url','stored','server','etag']
+
+class MetaFLJSONEncoder(json.JSONEncoder):
+    def encode(self,o):
+        if isinstance(o,dict):
+            return "{" + \
+                ",".join(["%s:%s"%(self.encode(i),self.encode(o[i] if i in o else None)) \
+                          for i in N_ALL]) + \
+               "}"
+        else:
+            return json.JSONEncoder.encode(self,o)
 
 ###########################################################################
 ###########################################################################
@@ -297,23 +316,8 @@ class singlefile(object):
             ## TODO compare with expected hashes
             ## TODO save in db
 
-            print "-- file:%s"%(self.filename,)
-            print "-- size:%s"%(self.filesize,)
-            print "-- stamp:%s"%(self.stamp,)
             self.hashes=[hash_md5.hexdigest(),hash_sha1.hexdigest(),hash_sha256.hexdigest(),None]
             if hash_githash: self.hashes[3]=hash_githash.hexdigest()
-            print "-- dig:%s"%self.hashes[0]
-            print "-- sha1:%s"%self.hashes[1]
-            print "-- sha256:%s"%self.hashes[2]
-            print "-- githash:%s"%(self.hashes[3])
-            print "-- mimetype:%s"%(self.mimetype)
-            print "-- charset:%s"%(self.charset)
-            print "-- encoding:%s"%(self.charset)
-            # url
-            print "-- stored:%s"%(self.stored)
-            print "-- server:%s"%(self.server)
-            print "-- etag:%s"%(self.etag)
-
             break
         return None
 
@@ -341,6 +345,20 @@ class singlefile(object):
             f.write("\t".join([str(i) if i else '?' for i in \
               [self.filename,self.filesize,self.stamp,self.hashes[0],self.mimetype,self.encoding,self.orig_url,self.stored,self.server,self.etag]])+"\n")
             f.close()
+
+        # needs $FL -- or fails silently
+        try:
+            year = time.gmtime(self.stored).tm_year
+        except TypeError:
+            year = time.time().tm_year
+        d={'file':self.filename,'size':self.filesize,'stamp':self.stamp,\
+        'md5':self.hashes[0],'sha1':self.hashes[1],'sha256':self.hashes[2],\
+        'githash':self.hashes[3],'mimetype':self.mimetype,'charset':self.charset,\
+        'encoding':self.encoding,'url':self.orig_url,\
+        'stored':self.stored,'server':self.server,'etag':self.etag}
+        with open ('%s/%04d-%s.meta'%(os.environ[FL],year,platform.node()[0:6]),"a") as flmeta:
+            flmeta.write("%s\n"%(json.dumps(d,cls=MetaFLJSONEncoder)))
+            flmeta.close()
 
     def __del__(self):
         try:
