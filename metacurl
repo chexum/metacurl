@@ -245,6 +245,8 @@ class singlefile(object):
                 if hash_githash: hash_githash.update(buf)
             f.close()
 
+            ## need to have the timestamp before renaming
+            self.stamp = hdr.get_chrono_header('Last-Modified')
             self.stored = int(time.time())
             try:
                 d = hdr.get_chrono_header('Date')
@@ -259,9 +261,11 @@ class singlefile(object):
                 if statbuf.st_size != expected_size:
                     expected_size = statbuf.st_size
                 if expected_size is None or counted_size == expected_size:
-                    os.rename(self.tmpname,self.filename)
+                    if self.stamp:
+                        os.utime(self.tmpname,(self.stamp,self.stamp))
                     self.filesize = int(counted_size)
                     self.error = None
+                    ## success
                 elif expected_size is not None:
                     self.error = "loaded only %d bytes of %d"%(counted_size,expected_size)
                     os.remove(self.tmpname)
@@ -271,8 +275,6 @@ class singlefile(object):
                 os.remove(self.tmpname)
                 self.tmpname = None
                 break
-
-            self.stamp = hdr.get_chrono_header('Last-Modified')
 
             self.server = hdr.get_single_header('Server')
 
