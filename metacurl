@@ -317,19 +317,29 @@ class singlefile(object):
             break
         return None
 
+    def savefile(self,filename=None,broken=False):
+        if self.error and not broken:
+            return None
+        if not self.tmpname:
+            return None
+        if filename is None:
+            filename = self.filename
+        try:
+            os.stat(filename)
+            filename="%s.%s"%(filename,os.getpid())
+            os.stat(filename)
+            return None
+        except OSError:
+            pass
+        print "keeping %s"%(filename)
+        os.rename(self.tmpname,filename)
+
     def __del__(self):
-        print "deleting",self.tmpname,self.filename
         try:
             if self.tmpname:
                 os.remove(self.tmpname);
                 print "removed %s"%(self.tmpname)
                 self.tmpname = None
-        except OSError: pass
-        try:
-            if self.filename:
-                os.remove(self.filename)
-                print "removed %s (debugging)"%(self.filename)
-                self.filename = None
         except OSError: pass
 
 ###########################################################################
@@ -392,7 +402,7 @@ def main():
 
     for url in args.URL:
         savedfile = singlefile(url,curl_args)
-        print savedfile.__dict__
+        savedfile.savefile()
 
 ###########################################################################
 ###########################################################################
