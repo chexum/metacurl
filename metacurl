@@ -249,7 +249,7 @@ class singlefile(object):
             ## start downloading to a temporary file
             if hdr.status_code != 200:
                 self.error = "HTTP status %d %s"%(hdr.status_code,hdr.reason)
-                f = tempfile.mkstemp(prefix='.status%d'%(hdr.status),dir='.')
+                f = tempfile.mkstemp(prefix='.status%d'%(hdr.status_code),dir='.')
             else:
                 self.error = "downloading"
                 f = tempfile.mkstemp(prefix='.meta',dir='.')
