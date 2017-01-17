@@ -13,7 +13,9 @@ import json
 class http_headerblock(object):
     """
     HTTP header block, parsed from a pipe
-    http_headerblock(pipe)
+    http_headerblock(pipe).  Uses iteration,
+    which cannot be then intermixed with plain
+    read()
 
     Args:
         pipe (handle): an input file handle
