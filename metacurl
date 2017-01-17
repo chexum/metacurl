@@ -319,6 +319,7 @@ class singlefile(object):
 
     def savefile(self,filename=None,broken=False):
         if self.error and not broken:
+            print "! cannot save, %s\n"%(self.error)
             return None
         if not self.tmpname:
             return None
@@ -332,7 +333,9 @@ class singlefile(object):
         except OSError:
             pass
         print "keeping %s"%(filename)
+        self.filename = filename
         os.rename(self.tmpname,filename)
+        self.tmpname = None
 
     def __del__(self):
         try:
