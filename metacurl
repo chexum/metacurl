@@ -369,7 +369,7 @@ def main():
     parser.add_argument('-k','--insecure',action='store_true')
     parser.add_argument('-K','--config')
     parser.add_argument('-H','--header',action='append')
-    parser.add_argument('--data-binary',action='append')
+    parser.add_argument('--data-binary')
     parser.add_argument('--proxy-header',action='store_true')
     parser.add_argument('--compressed',action='store_true')
     parser.add_argument('--socks5-hostname')
@@ -384,22 +384,19 @@ def main():
     args = parser.parse_args()
     # XXX path for curl
     curl_args=["curl","-s","-i"]
-    enc=json.JSONEncoder()
+#    enc=json.JSONEncoder()
 
-    print args
     for i,v in args.__dict__.items():
-      if isinstance(v,list):
-        for n in v:
-          print '-- %s'%(i,),enc.encode(n)
-      elif i in ['2_0','dump_header','silent','include']:
-        if v:
-          print "-- option %s stripped"%(i,)
-        # silent and include will be added always
-        pass
-      elif v==True:
-        curl_args.append('--%s'%(i,))
-      elif v:
-        curl_args.append('--%s=%s'%(i.replace('_','-'),v,))
+        if isinstance(v,list) and i in ['header',]:
+            for n in v:
+                curl_args.extend(['--%s'%(i),'%s'%(n,)])
+        elif i in ['2_0','dump_header','silent','include','URL']:
+            # silent and include will be added always
+            if v: print "-- option %s stripped"%(i,)
+        elif v==True:
+            curl_args.append('--%s'%(i,))
+        elif v:
+            curl_args.extend(['--%s'%(i.replace('_','-')),'%s'%(v,)])
 
     ## XXX add default headers (UA)
     curl_args.append('--')
