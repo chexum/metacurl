@@ -115,8 +115,9 @@ def savesinglefile(url,curlopts):
     [hunk]=hunk.split('&',1); [hunk]=hunk.split('?',1); [hunk]=hunk.split('#',1)
     download_name=hunk
 
+    download_type='fetching'
     while True:
-        print "-- fetching",url
+        print "-- %s %s"%(download_type,url)
         all_args = curlopts[:]
         all_args.append(url)
         run_curl = subprocess.Popen(all_args,stdout=subprocess.PIPE)
