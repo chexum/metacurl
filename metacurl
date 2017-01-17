@@ -391,6 +391,7 @@ def main():
     parser.add_argument('-i','--include',action='store_true')
     parser.add_argument('--remote-name-all',action='store_true')
     parser.add_argument('-v','--verbose',action='store_true')
+    parser.add_argument('-N','--no-buffer',action='store_true')
     parser.add_argument('-s','--silent',action='store_true')
     parser.add_argument('-r','--range')
     parser.add_argument('-k','--insecure',action='store_true')
@@ -421,7 +422,7 @@ def main():
             # silent and include will be added always
             if v: print "-- option %s stripped"%(i,)
         elif v==True:
-            curl_args.append('--%s'%(i,))
+            curl_args.append('--%s'%(i.replace('_','-'),))
         elif v:
             curl_args.extend(['--%s'%(i.replace('_','-')),'%s'%(v,)])
 
