@@ -23,17 +23,34 @@ class http_headerblock(object):
         lines (list): list of header fields
     """
 
-    def content_length(self):
-        """Content-Length: if there are multiple headers, return number
+    def get_single_header(self,name):
+        """Get a simple header, fail if multiple found"""
+        try:
+            allvalues = self.headers[name.upper()]
+            if len(allvalues) != 1:
+                return None
+            return allvalues[0]
+        except (KeyError):
+            return None
+
+    def get_duplicated_header(self,name):
+        """Get a single header, if there are multiple headers, return
         only if they all match"""
         try:
-            allvalues = self.headers['CONTENT-LENGTH']
-            cl = int(allvalues[0])
-            for n in allvalues[1:]:
-                if int(n) != cl:
+            allvalues = self.headers[name.upper()]
+            cl = allvalues[0]
+            for s in allvalues[1:]:
+                if s != cl:
                     return None
             return cl
-        except (ValueError,KeyError):
+        except KeyError:
+            return None
+
+    def get_content_length(self):
+        n = self.get_duplicated_header('Content-Length')
+        try:
+            return int(n)
+        except (ValueError,TypeError):
             return None
 
     def __str__(self):
@@ -169,7 +186,7 @@ class singlefile(object):
 
             ## prepare to process body
             ## check status code to not give a chance to save error pages
-            expected_size = hdr.content_length()
+            expected_size = hdr.get_content_length()
             print "CL",hdr.status_code,expected_size
 
             ## prepare hashing (git hash needs size beforehand)
