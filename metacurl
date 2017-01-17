@@ -127,12 +127,16 @@ class singlefile(object):
     """
 
     def __init__(self,url,curlopts):
+        self.error = "not initialized"
         self.orig_url = ""
-        self.tmpname = None
         self.filename = None
         self.filesize = None
         self.hashes=[] # md5,sha1,sha256[,githash]
-        self.error = "not initialized"
+        self.server = None
+        self.etag = None
+        self.mimetype = None
+        self.charset = None
+        self.tmpname = None
 
         if '#' in url:
             ## TODO parse fragment for hash spec
@@ -238,6 +242,18 @@ class singlefile(object):
                 self.tmpname = None
                 break
 
+            self.server = hdr.get_single_header('Server')
+            self.etag = hdr.get_single_header('Etag').strip("\x22\x27")
+            mimearr = hdr.get_single_header('Content-Type').split(';')
+            try:
+                self.mimetype = mimearr[0].strip()
+            except KeyError:
+                self.mimetype = None
+            for k in mimearr[1:]:
+                if k.strip().upper()[0:8]=='CHARSET=':
+                    # avoiding proper dequoting
+                    self.charset = k[9:].strip("\x27\x22")
+
             ## TODO compare with expected hashes
             ## TODO save in db
 
@@ -250,6 +266,13 @@ class singlefile(object):
             print "-- sha1:%s"%self.hashes[1]
             print "-- sha256:%s"%self.hashes[2]
             print "-- githash:%s"%(self.hashes[3])
+            print "-- mimetype:%s"%(self.mimetype)
+            print "-- charset:%s"%(self.charset)
+            # encoding
+            # url
+            # stored/present
+            print "-- server:%s"%(self.server)
+            print "-- etag:%s"%(self.etag)
 
             break
         return None
