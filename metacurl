@@ -105,10 +105,17 @@ class http_headerblock(object):
 
 class singlefile(object):
     """
-    Process a single file by using curl and inspecting the output
+    Retrieve a single file by using curl and inspecting the output
     """
 
     def __init__(self,url,curlopts):
+        self.orig_url = ""
+        self.tmpname = None
+        self.filename = None
+        self.filesize = None
+        self.hashes=[] # md5,sha1,sha256[,githash]
+        self.error = "not initialized"
+
         if '#' in url:
             ## TODO parse fragment for hash spec
             [url,frag] = url.split('#',1)
@@ -117,21 +124,21 @@ class singlefile(object):
             frag = None
 
         # save original url and extract possible filename (without parameters)
-        orig_url = url
+        self.orig_url = url
         parts = url.split('?',1)[0].split('/')
         if parts[-1] == '' or parts[-1][0] in '&?#' or parts[-1] == 'download':
             hunk=parts[-2]
         else:
             hunk=parts[-1]
-        download_name=hunk
+        self.filename=hunk
         download_type='fetching'
         while True:
             print "-- %s %s"%(download_type,url)
             all_args = curlopts[:]
             all_args.append(url)
             run_curl = subprocess.Popen(all_args,stdout=subprocess.PIPE)
-            hdr = http_headerblock(run_curl.stdout)
 
+            hdr = http_headerblock(run_curl.stdout)
             # if via proxy, there might be a first HTTP response about the connection
             if None != hdr.lines and len(hdr.lines) == 0 and hdr.status_code == 200:
                 hdr = http_headerblock(run_curl.stdout)
@@ -139,15 +146,17 @@ class singlefile(object):
             if None == hdr.lines:
                 res = run_curl.wait()
                 if res == 35:
-                    print "! curl failed (code %d), try without -k"%(res,)
+                    self.error = "curl returned err %d, try without -k"%(res,)
                 elif res == 60:
-                    print "! curl failed (code %d), try with -k"%(res,)
+                    self.error = "curl returned err %d, try with -k"%(res,)
                 else:
-                    print "! curl failed (code %d)"
+                    self.error = "curl returned err %d"
+                print "! %s"%self.error
                 break
 
             ## check if redirect
             if (hdr.status_code / 100) == 3:
+                self.error = "redirecting"
                 run_curl.kill()
                 # TODO handle failure
                 loc = hdr.headers['LOCATION'][0]
@@ -161,9 +170,13 @@ class singlefile(object):
             ## check status code to not give a chance to save error pages
             expected_size = hdr.content_length()
             print "CL",hdr.status_code,expected_size
-            invented_filename='.%d.%d.meta'%(os.getpid(),1)
+            ## TODO safe temporary name instead
+            self.tmpname='.%d.%d.meta'%(os.getpid(),1)
             if hdr.status_code != 200:
-                download_name='.status%d.%d.%d.html'%(hdr.status_code,os.getpid(),1)
+                self.error = "HTTP status %d %s"%(hdr.status_code,hdr.reason)
+                self.filename='.status%d.%d.%d.html'%(hdr.status_code,os.getpid(),1)
+            else:
+                self.error = "downloading"
 
             ## prepare hashing (git hash needs size beforehand)
             hash_md5=hashlib.md5()
@@ -174,8 +187,8 @@ class singlefile(object):
                 hash_githash=hashlib.sha1()
                 hash_githash.update(b"blob %d\0"%(expected_size))
 
-            print invented_filename,download_name
-            f = open(invented_filename,'w')
+            print self.tmpname,self.filename
+            f = open(self.tmpname,'w')
             ## TODO progress
             counted_size = 0
             for buf in run_curl.stdout:
@@ -189,22 +202,36 @@ class singlefile(object):
 
             # check if download is complete
             if hdr.status_code == 200:
+                # XXX check on-disk size too
                 if expected_size is None or counted_size == expected_size:
-                    os.rename(invented_filename,download_name)
+                    os.rename(self.tmpname,self.filename)
+                    self.filesize = int(counted_size)
+                    self.error = None
                 elif expected_size is not None:
-                    print "! downloaded %d bytes of %d, failing"%(counted_size,expected_size)
-                    os.remove(invented_filename)
+                    self.error = "loaded only %d bytes of %d"%(counted_size,expected_size)
+                    os.remove(self.tmpname)
+                    self.tmpname = None
                     break
             else:
-                os.remove(invented_filename)
+                os.remove(self.tmpname)
+                self.tmpname = None
                 break
 
-            print "-- md5:%s"%(hash_md5.hexdigest())
-            print "-- sha1:%s"%(hash_sha1.hexdigest())
-            print "-- sha256:%s"%(hash_sha256.hexdigest())
-            if hash_githash:
-                print "-- githash:%s"%(hash_githash.hexdigest())
+            ## TODO compare with expected hashes
+            ## TODO save in db
+
+            print "-- file:%s"%(self.filename,)
+            print "-- file:%s"%(expected_size,)
+            print "-- stamp:" # FIXME
+            self.hashes=[hash_md5.hexdigest(),hash_sha1.hexdigest(),hash_sha256.hexdigest(),None]
+            if hash_githash: self.hashes[3]=hash_githash.hexdigest()
+            print "-- dig:%s"%self.hashes[0]
+            print "-- sha1:%s"%self.hashes[1]
+            print "-- sha256:%s"%self.hashes[2]
+            print "-- githash:%s"%(self.hashes[3])
+
             break
+        return None
 
 ###########################################################################
 ###########################################################################
@@ -266,6 +293,7 @@ def main():
 
     for url in args.URL:
         savedfile = singlefile(url,curl_args)
+        print savedfile.__dict__
 
 ###########################################################################
 ###########################################################################
