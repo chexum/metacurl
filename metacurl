@@ -101,7 +101,7 @@ class http_headerblock(object):
 ###########################################################################
 ###########################################################################
 
-def savesinglefile(url,argarray):
+def savesinglefile(url,curlopts):
     """
     Process a single file by using curl and inspecting the output
     """
@@ -117,9 +117,9 @@ def savesinglefile(url,argarray):
 
     while True:
         print "-- fetching",url
-        a = argarray[:]
-        a.append(url)
-        run_curl = subprocess.Popen(a,stdout=subprocess.PIPE)
+        all_args = curlopts[:]
+        all_args.append(url)
+        run_curl = subprocess.Popen(all_args,stdout=subprocess.PIPE)
         hdr = http_headerblock(run_curl.stdout)
         # if via proxy, there might be a first HTTP response about the connection
         if len(hdr.lines) == 0 and hdr.status_code == 200:
