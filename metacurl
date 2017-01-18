@@ -421,8 +421,7 @@ class singlefile(object):
         ## don't store extra precision if not present
         safestamp='%f'%(self.stamp,)
         try:
-            safestamp = str(int(self.stamp))
-            (i,frac)=safestamp.split('.')
+            (i,frac)=safestamp.split('.',1)
             if int(frac)==0:
                 safestamp=str(i)
             else:
