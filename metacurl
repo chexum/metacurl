@@ -341,6 +341,9 @@ class singlefile(object):
                     self.charset = k[9:].strip("\x27\x22")
 
             self.encoding = hdr.get_single_header('Content-Encoding')
+            z = hdr.get_single_header('X-GOOG-Stored-Content-Encoding')
+            if z and self.encoding is None:
+                self.encoding = z
 
             ## TODO compare with expected hashes
             ## TODO save in db
