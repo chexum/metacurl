@@ -381,9 +381,23 @@ class singlefile(object):
 
         ## 1/3 write .meta as text with some fields
         ## order cannot be changed - append only (or rather ignore)
+
+        ## don't store extra precision if not present
+        safestamp='%f'%(self.stamp,)
+        try:
+            safestamp = str(int(self.stamp))
+            (i,frac)=safestamp.split('.')
+            if int(frac)==0:
+                safestamp=str(i)
+            else:
+                safestamp=safestamp.rstrip('0')
+            print i,frac,safestamp
+        except ValueError:
+            pass
+
         with open('.meta','a') as f:
             f.write("\t".join([str(i) if i else '?' for i in \
-              [self.filename,self.filesize,'%f'%(self.stamp),self.hashes[0],self.mimetype,self.encoding,self.orig_url,self.stored,self.server,self.etag]])+"\n")
+              [self.filename,self.filesize,safestamp,self.hashes[0],self.mimetype,self.encoding,self.orig_url,self.stored,self.server,self.etag]])+"\n")
             f.close()
 
         ## 2/3 write per-user/host meta - may fail silently
@@ -392,7 +406,7 @@ class singlefile(object):
             year = time.gmtime(self.stored).tm_year
         except TypeError:
             year = time.time().tm_year
-        d={'file':self.filename,'size':self.filesize,'stamp':'%f'%(self.stamp),\
+        d={'file':self.filename,'size':self.filesize,'stamp':safestamp,\
         'md5':self.hashes[0],'sha1':self.hashes[1],'sha256':self.hashes[2],\
         'githash':self.hashes[3],'mimetype':self.mimetype,'charset':self.charset,\
         'encoding':self.encoding,'url':self.orig_url,\
