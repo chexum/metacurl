@@ -10,6 +10,7 @@ import argparse
 import json
 import sqlite3
 import base64,binascii
+import urllib
 
 
 ###########################################################################
@@ -202,6 +203,13 @@ class singlefile(object):
             hunk=parts[-2]
         else:
             hunk=parts[-1]
+
+        try:
+            x = urllib.unquote(hunk)
+            if x != hunk:
+                hunk = x
+        except:
+            pass
         self.filename=hunk
         download_type='fetching'
 
