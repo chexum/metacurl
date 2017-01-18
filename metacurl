@@ -282,8 +282,6 @@ class singlefile(object):
                 if statbuf.st_size != counted_size:
                     counted_size = statbuf.st_size
                 if expected_size is None or counted_size == expected_size:
-                    if self.stamp:
-                        os.utime(self.tmpname,(self.stamp,self.stamp))
                     self.filesize = int(counted_size)
                     self.error = None
                     ## success
@@ -338,6 +336,11 @@ class singlefile(object):
             return None
         except OSError:
             pass
+
+        # postponing these so that the temp file may be seen as recent
+        if self.stamp:
+            os.utime(self.tmpname,(self.stamp,self.stamp))
+            os.chmod(self.tmpname,0644)
 
         self.filename = filename
         os.rename(self.tmpname,filename)
