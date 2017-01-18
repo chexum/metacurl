@@ -250,6 +250,7 @@ class singlefile(object):
             ## prepare to process body
             ## check status code to not give a chance to save error pages
             expected_size = hdr.get_content_length()
+            if expected_size == 0: expected_size = None
 
             ## debugging to seek for new headers containing information
             for n in hdr.headers:
