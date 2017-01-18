@@ -67,7 +67,7 @@ class http_headerblock(object):
             cl = allvalues[0]
             for s in allvalues[1:]:
                 if s != cl:
-                    print "! ambiguous header %s (%s:%s)",name,s,cl
+                    print "!! ambiguous header %s (%s:%s)",name,s,cl
                     return None
             return cl
         except KeyError:
@@ -221,7 +221,7 @@ class singlefile(object):
                     self.error = "curl returned err %d, try with -k"%(res,)
                 else:
                     self.error = "curl returned err %d"%(res,)
-                print "! %s"%self.error
+                print "!! %s"%self.error
                 break
 
             ## check if redirect
@@ -355,7 +355,7 @@ class singlefile(object):
 
     def savefile(self,filename=None,broken=False):
         if self.error and not broken:
-            print "! cannot save, %s%s%s\n"%(ANSI_RED,self.error,ANSI_OFF)
+            print "!! cannot save, %s%s%s\n"%(ANSI_RED,self.error,ANSI_OFF)
             return None
         if not self.tmpname:
             return None
@@ -490,7 +490,7 @@ def main():
                 curl_args.extend(['--%s'%(i),'%s'%(n,)])
         elif i in ['2_0','dump_header','silent','include','URL']:
             # silent and include will be added always
-            if v: print "-- option %s stripped"%(i,)
+            pass
         elif v==True:
             curl_args.append('--%s'%(i.replace('_','-'),))
         elif v:
