@@ -9,6 +9,7 @@ import platform
 import argparse
 import json
 import sqlite3
+import base64,binascii
 
 
 ###########################################################################
@@ -185,6 +186,7 @@ class singlefile(object):
         self.charset = None
         self.encoding = None
         self.tmpname = None
+        self.expected_md5 = None
 
         if '#' in url:
             ## TODO parse fragment for hash spec
@@ -247,13 +249,31 @@ class singlefile(object):
                    (n in ['SERVER','AGE','ALT-SVC','CONNECTION']) or \
                    (n in ['DATE','LAST-MODIFIED','EXPIRES']) or \
                    (n in ['CONTENT-LENGTH','CONTENT-TYPE','ETAG']) or \
-                   (n[0:10] in ['X-GOOG-MET','X-GOOG-STO','X-GOOG-GEN','STRICT-TRA']) or \
+                   (n[0:10] in ['X-GOOG-MET','X-GOOG-STO','X-GOOG-GEN','STRICT-TRA','X-GOOG-HAS']) or \
                    False: continue
                 if ('CONTENT' in n) or \
                    ('LAST' in n) or \
                    ('GOOG' in n) or \
                    True:
                    print n,":".join(hdr.headers[n])
+
+            ## x-goog-hash: md5=<base64 of binary>
+            try:
+                for h in hdr.headers['X-GOOG-HASH']:
+                    (t,d)=h.split('=',1)
+                    if t.upper() == 'MD5':
+                        dig = binascii.hexlify(base64.b64decode(d))
+                        if self.expected_md5:
+                            if self.expected_md5 != dig:
+                                print "!! different MD5 digests to check"
+                        else:
+                            self.expected_md5 = dig
+            except (KeyError,ValueError,TypeError):
+                pass
+
+            ## more places to fetch data from
+## content-description: Midnight Commander v4.7.3 (latest) sha256sum: 8777c184715e8b0a6301ac6da886cbce0fc4a3a6fdb833299c99bc6a23918f36
+## < etag: "f3146e44ef1182467592e2f2f4665260"
 
             ## prepare hashing (git hash needs size beforehand)
             hash_md5=hashlib.md5()
@@ -344,11 +364,9 @@ class singlefile(object):
             if z and self.encoding is None:
                 self.encoding = z
 
-            ## TODO compare with expected hashes
-            ## TODO save in db
-
             self.hashes=[hash_md5.hexdigest(),hash_sha1.hexdigest(),hash_sha256.hexdigest(),None]
             if hash_githash: self.hashes[3]=hash_githash.hexdigest()
+
             break
         return None
 
@@ -376,8 +394,27 @@ class singlefile(object):
         self.filename = filename
         os.rename(self.tmpname,filename)
         self.tmpname = None
-        print "\r%s %s%s%s (%d)"%(filename,ANSI_GREEN,'OK',ANSI_OFF,self.filesize)
+        bad = []
+        good = []
 
+        # check digests
+        if self.expected_md5:
+            if self.expected_md5 == self.hashes[0]:
+                good.append('MD5')
+            else:
+                bad.append('MD5')
+        # report digest verficiation
+        report_color = ANSI_OFF
+        if len(bad):
+            report_color = ANSI_RED
+            ok = 'BAD'+' '.join(bad)
+        else:
+            report_color = ANSI_GREEN
+            good.append('OK')
+            ok = ' '.join(good)
+        print "\r%s %s%s%s (%d)"%(filename,report_color,ok,ANSI_OFF,self.filesize)
+
+        ## TODO avoid if duplicate
         ## 1/3 write .meta as text with some fields
         ## order cannot be changed - append only (or rather ignore)
 
