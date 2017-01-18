@@ -243,11 +243,11 @@ class singlefile(object):
             ## debugging to seek for new headers containing information
             for n in hdr.headers:
                 if ('LANGUAGE' in n) or \
-                   (n[0:6] in ['ACCESS','ACCEPT','CACHE-','X-GUPL']) or \
-                   (n in ['SERVER','AGE','ALT-SVC']) or \
+                   (n[0:6] in ['ACCESS','ACCEPT','CACHE-','X-GUPL','X-CACH','PROXY-']) or \
+                   (n in ['SERVER','AGE','ALT-SVC','CONNECTION']) or \
                    (n in ['DATE','LAST-MODIFIED','EXPIRES']) or \
-                   (n in ['CONTENT-LENGTH','CONTENT-TYPE']) or \
-                   (n[0:10] in ['X-GOOG-MET','X-GOOG-STO','X-GOOG-GEN']) or \
+                   (n in ['CONTENT-LENGTH','CONTENT-TYPE','ETAG']) or \
+                   (n[0:10] in ['X-GOOG-MET','X-GOOG-STO','X-GOOG-GEN','STRICT-TRA']) or \
                    False: continue
                 if ('CONTENT' in n) or \
                    ('LAST' in n) or \
