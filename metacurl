@@ -240,6 +240,21 @@ class singlefile(object):
             ## check status code to not give a chance to save error pages
             expected_size = hdr.get_content_length()
 
+            ## debugging to seek for new headers containing information
+            for n in hdr.headers:
+                if ('LANGUAGE' in n) or \
+                   (n[0:6] in ['ACCESS','ACCEPT','CACHE-','X-GUPL']) or \
+                   (n in ['SERVER','AGE','ALT-SVC']) or \
+                   (n in ['DATE','LAST-MODIFIED','EXPIRES']) or \
+                   (n in ['CONTENT-LENGTH','CONTENT-TYPE']) or \
+                   (n[0:10] in ['X-GOOG-MET','X-GOOG-STO','X-GOOG-GEN']) or \
+                   False: continue
+                if ('CONTENT' in n) or \
+                   ('LAST' in n) or \
+                   ('GOOG' in n) or \
+                   True:
+                   print n,":".join(hdr.headers[n])
+
             ## prepare hashing (git hash needs size beforehand)
             hash_md5=hashlib.md5()
             hash_sha1=hashlib.sha1()
