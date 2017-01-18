@@ -220,7 +220,7 @@ class singlefile(object):
                 elif res == 60:
                     self.error = "curl returned err %d, try with -k"%(res,)
                 else:
-                    self.error = "curl returned err %d"
+                    self.error = "curl returned err %d"%(res,)
                 print "! %s"%self.error
                 break
 
