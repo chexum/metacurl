@@ -429,9 +429,9 @@ class singlefile(object):
         try:
             (i,frac)=safestamp.split('.',1)
             if int(frac)==0:
-                safestamp=str(i)
+                safestamp=int(i)
             else:
-                safestamp=safestamp.rstrip('0')
+                safestamp=float(safestamp.rstrip('0'))
         except ValueError:
             pass
 
