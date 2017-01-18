@@ -294,7 +294,7 @@ class singlefile(object):
                 print z/1000000.0,self.stamp
                 if abs(z/1000000.0-self.stamp)<5:
                     self.stamp = z/1000000.0
-            except ValueError:
+            except (ValueError,TypeError):
                 pass
             self.stored = int(time.time())
             try:
