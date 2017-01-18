@@ -425,14 +425,17 @@ class singlefile(object):
         ## order cannot be changed - append only (or rather ignore)
 
         ## don't store extra precision if not present
-        safestamp='%f'%(self.stamp,)
+        if self.stamp:
+            safestamp = '%f'%(self.stamp,)
+        else:
+            safestamp = self.stamp
         try:
             (i,frac)=safestamp.split('.',1)
             if int(frac)==0:
                 safestamp=int(i)
             else:
                 safestamp=float(safestamp.rstrip('0'))
-        except ValueError:
+        except (ValueError,AttributeError):
             pass
 
         with open('.meta','a') as f:
