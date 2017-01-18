@@ -17,6 +17,9 @@ import sqlite3
 # environment name for user's meta filelist directory
 FL='FLMETADIR'
 N_ALL=['file','size','stamp','md5','sha1','sha256','githash','mimetype','charset','encoding','url','stored','server','etag']
+ANSI_OFF  = b'\033[m\033K'
+ANSI_RED  = b'\033[32m'
+ANSI_GREEN= b'\033[32m'
 
 class MetaFLJSONEncoder(json.JSONEncoder):
     def encode(self,o):
@@ -323,7 +326,7 @@ class singlefile(object):
 
     def savefile(self,filename=None,broken=False):
         if self.error and not broken:
-            print "! cannot save, %s\n"%(self.error)
+            print "! cannot save, %s%s%s\n"%(ANSI_RED,self.error,ANSI_OFF)
             return None
         if not self.tmpname:
             return None
@@ -345,7 +348,7 @@ class singlefile(object):
         self.filename = filename
         os.rename(self.tmpname,filename)
         self.tmpname = None
-        print "\r%s (%d)"%(filename,self.filesize)
+        print "\r%s %s%s%s (%d)"%(filename,ANSI_GREEN,'OK',ANSI_OFF,self.filesize)
 
         ## 1/3 write .meta as text with some fields
         ## order cannot be changed - append only (or rather ignore)
