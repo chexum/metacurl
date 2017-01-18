@@ -252,6 +252,21 @@ class singlefile(object):
             expected_size = hdr.get_content_length()
             if expected_size == 0: expected_size = None
 
+            # TODO merge with content-type tokenized
+#CONTENT-DISPOSITION attachment; filename=www-1.8.3.tar.xz
+#CONTENT-DISPOSITION inline;filename=WWW.pdf
+#CONTENT-DISPOSITION inline; filename="WWW.pdf"
+            mimearr = hdr.get_single_header('Content-Disposition').split(';')
+            try:
+                for k in mimearr[1:]:
+                    if k.strip().upper()[0:9]=='FILENAME=':
+                        # avoiding proper dequoting
+                        print "old",self.filename
+                        self.filename = k[10:].strip("\x27\x22")
+                        print "new",self.filename
+            except KeyError:
+                pass
+
             ## debugging to seek for new headers containing information
             for n in hdr.headers:
                 if ('LANGUAGE' in n) or \
@@ -369,6 +384,7 @@ class singlefile(object):
             try: self.etag = hdr.get_single_header('Etag').strip("\x22\x27")
             except AttributeError: self.etag = None
 
+            # XXX tokenized access like content-disposition
             mimearr = hdr.get_single_header('Content-Type').split(';')
             try:
                 self.mimetype = mimearr[0].strip()
