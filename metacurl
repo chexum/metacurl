@@ -255,10 +255,11 @@ class singlefile(object):
             for n in hdr.headers:
                 if ('LANGUAGE' in n) or \
                    (n[0:6] in ['ACCESS','ACCEPT','CACHE-','X-GUPL','X-CACH','PROXY-','X-FRAM']) or \
-                   (n in ['SERVER','AGE','ALT-SVC','CONNECTION','VARY']) or \
+                   (n in ['SERVER','AGE','ALT-SVC','CONNECTION','VARY','CF-RAY','PRAGMA']) or \
                    (n in ['DATE','LAST-MODIFIED','EXPIRES']) or \
-                   (n in ['CONTENT-LENGTH','CONTENT-TYPE','ETAG']) or \
+                   (n in ['CONTENT-LENGTH','CONTENT-TYPE','ETAG','SET-COOKIE','P3P']) or \
                    (n[0:10] in ['X-GOOG-MET','X-GOOG-STO','X-GOOG-GEN','STRICT-TRA','X-GOOG-HAS','X-AMZ-REQU','X-AMZ-ID-2']) or \
+                   (n[0:10] in ['CF-CACHE-S','X-XSS-PROT','X-CONTENT-','X-POWERED-','X-UA-COMPA','TIMING-ALL']) or \
                    False: continue
                 if ('CONTENT' in n) or \
                    ('LAST' in n) or \
@@ -296,15 +297,20 @@ class singlefile(object):
             ## start downloading to a temporary file
             if hdr.status_code != 200:
                 self.error = "HTTP status %d %s"%(hdr.status_code,hdr.reason)
-                f = tempfile.mkstemp(prefix='.status%d'%(hdr.status_code),dir='.')
+                f = tempfile.mkstemp(prefix='.err%d'%(hdr.status_code),dir='.')
             else:
                 self.error = "downloading"
-                f = tempfile.mkstemp(prefix='.meta',dir='.')
+                f = tempfile.mkstemp(prefix='.dl_',dir='.')
             self.tmpname = f[1]; f = os.fdopen(f[0],"w")
 
             ## TODO progress
             counted_size,i,x = 0,0,99
-            sys.stderr.write("\r %20s%-50s%s \r"%('',self.orig_url,ANSI_OFF))
+            shortened_url = self.orig_url[0:100]
+            if self.filename not in shortened_url:
+                shortened_name = ' .../'+self.filename[-95:]
+                shortened_url = shortened_url[:120-len(shortened_name)]+shortened_name
+
+            sys.stderr.write("\r %15s%s%s \r"%('',shortened_url,ANSI_OFF))
             for buf in run_curl.stdout:
                 f.write(buf)
                 z = time.gmtime().tm_sec
@@ -400,10 +406,10 @@ class singlefile(object):
         except OSError:
             pass
 
-        # postponing these so that the temp file may be seen as recent
+        # postponing these - the temp file won't be seen as proper
         if self.stamp:
             os.utime(self.tmpname,(self.stamp,self.stamp))
-            os.chmod(self.tmpname,0644)
+        os.chmod(self.tmpname,0644)
 
         self.filename = filename
         os.rename(self.tmpname,filename)
