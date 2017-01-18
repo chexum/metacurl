@@ -270,9 +270,20 @@ class singlefile(object):
             f.close()
 
             ## need to have the timestamp before renaming
+## LAST-MODIFIED Wed, 21 Dec 2016 03:44:53 GMT
+##                   1482291893
+## X-GOOG-GENERATION 1482291893643481
             self.stamp = hdr.get_chrono_header('Last-Modified')
+            try:
+                z = float(hdr.get_single_header('X-GOOG-Generation'))
+                print z/1000000.0,self.stamp
+                if abs(z/1000000.0-self.stamp)<5:
+                    self.stamp = z/1000000.0
+            except ValueError:
+                pass
             self.stored = int(time.time())
             try:
+                ## save server's idea of the time if not too far off
                 d = hdr.get_chrono_header('Date')
                 if abs(d-self.stored)<7200:
                     self.stored = d
@@ -354,7 +365,7 @@ class singlefile(object):
         ## order cannot be changed - append only (or rather ignore)
         with open('.meta','a') as f:
             f.write("\t".join([str(i) if i else '?' for i in \
-              [self.filename,self.filesize,self.stamp,self.hashes[0],self.mimetype,self.encoding,self.orig_url,self.stored,self.server,self.etag]])+"\n")
+              [self.filename,self.filesize,'%f'%(self.stamp),self.hashes[0],self.mimetype,self.encoding,self.orig_url,self.stored,self.server,self.etag]])+"\n")
             f.close()
 
         ## 2/3 write per-user/host meta - may fail silently
@@ -363,7 +374,7 @@ class singlefile(object):
             year = time.gmtime(self.stored).tm_year
         except TypeError:
             year = time.time().tm_year
-        d={'file':self.filename,'size':self.filesize,'stamp':self.stamp,\
+        d={'file':self.filename,'size':self.filesize,'stamp':'%f'%(self.stamp),\
         'md5':self.hashes[0],'sha1':self.hashes[1],'sha256':self.hashes[2],\
         'githash':self.hashes[3],'mimetype':self.mimetype,'charset':self.charset,\
         'encoding':self.encoding,'url':self.orig_url,\
