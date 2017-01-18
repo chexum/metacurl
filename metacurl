@@ -291,7 +291,6 @@ class singlefile(object):
             self.stamp = hdr.get_chrono_header('Last-Modified')
             try:
                 z = float(hdr.get_single_header('X-GOOG-Generation'))
-                print z/1000000.0,self.stamp
                 if abs(z/1000000.0-self.stamp)<5:
                     self.stamp = z/1000000.0
             except (ValueError,TypeError):
@@ -391,7 +390,6 @@ class singlefile(object):
                 safestamp=str(i)
             else:
                 safestamp=safestamp.rstrip('0')
-            print i,frac,safestamp
         except ValueError:
             pass
 
