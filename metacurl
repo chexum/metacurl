@@ -436,6 +436,11 @@ class singlefile(object):
         except OSError:
             pass
 
+        # XXX try to match with constraints instead?
+        if self.mimetype.upper()[0:5] == 'TEXT/':
+            print "!! not saving, MIME type is %s"%(self.mimetype)
+            return None
+
         # postponing these - the temp file won't be seen as proper
         if self.stamp:
             os.utime(self.tmpname,(self.stamp,self.stamp))
