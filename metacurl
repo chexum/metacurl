@@ -385,10 +385,13 @@ class singlefile(object):
             except AttributeError: self.etag = None
 
             # XXX tokenized access like content-disposition
-            mimearr = hdr.get_single_header('Content-Type').split(';')
+            try:
+                mimearr = hdr.get_single_header('Content-Type').split(';')
+            except:
+                mimearr = ['']
             try:
                 self.mimetype = mimearr[0].strip()
-            except KeyError:
+            except (KeyError,ValueError):
                 self.mimetype = None
 
             for k in mimearr[1:]:
