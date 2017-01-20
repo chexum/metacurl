@@ -270,12 +270,13 @@ class singlefile(object):
             ## debugging to seek for new headers containing information
             for n in hdr.headers:
                 if ('LANGUAGE' in n) or \
-                   (n[0:6] in ['ACCESS','ACCEPT','CACHE-','X-GUPL','X-CACH','PROXY-','X-FRAM']) or \
-                   (n in ['SERVER','AGE','ALT-SVC','CONNECTION','VARY','CF-RAY','PRAGMA']) or \
+                   (n[0:6] in ['ACCESS','ACCEPT','CACHE-','X-GUPL','X-CACH','PROXY-','X-FRAM','X-TIME']) or \
+                   (n in ['SERVER','AGE','ALT-SVC','CONNECTION','VARY','CF-RAY','PRAGMA','VIA']) or \
                    (n in ['DATE','LAST-MODIFIED','EXPIRES']) or \
                    (n in ['CONTENT-LENGTH','CONTENT-TYPE','ETAG','SET-COOKIE','P3P']) or \
                    (n[0:10] in ['X-GOOG-MET','X-GOOG-STO','X-GOOG-GEN','STRICT-TRA','X-GOOG-HAS','X-AMZ-REQU','X-AMZ-ID-2']) or \
-                   (n[0:10] in ['CF-CACHE-S','X-XSS-PROT','X-CONTENT-','X-POWERED-','X-UA-COMPA','TIMING-ALL']) or \
+                   (n[0:10] in ['CF-CACHE-S','X-XSS-PROT','X-CONTENT-','X-POWERED-','X-UA-COMPA','TIMING-ALL','X-GITHUB-R']) or \
+                   (n[0:10] in ['X-FASTLY-R','X-GEO-BLOC','CONTENT-SE','X-SERVED-B','SOURCE-AGE']) or \
                    False: continue
                 if ('CONTENT' in n) or \
                    ('LAST' in n) or \
