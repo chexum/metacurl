@@ -256,15 +256,15 @@ class singlefile(object):
 #CONTENT-DISPOSITION attachment; filename=www-1.8.3.tar.xz
 #CONTENT-DISPOSITION inline;filename=WWW.pdf
 #CONTENT-DISPOSITION inline; filename="WWW.pdf"
-            mimearr = hdr.get_single_header('Content-Disposition').split(';')
             try:
+                mimearr = hdr.get_single_header('Content-Disposition').split(';')
                 for k in mimearr[1:]:
                     if k.strip().upper()[0:9]=='FILENAME=':
                         # avoiding proper dequoting
                         print "old",self.filename
                         self.filename = k[10:].strip("\x27\x22")
                         print "new",self.filename
-            except KeyError:
+            except (KeyError,AttributeError):
                 pass
 
             ## debugging to seek for new headers containing information
