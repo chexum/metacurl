@@ -329,11 +329,15 @@ class singlefile(object):
             sys.stderr.write("\r %15s%s%s \r"%('',shortened_url,ANSI_OFF))
             for buf in run_curl.stdout:
                 f.write(buf)
+                counted_size = counted_size + len(buf)
                 z = time.gmtime().tm_sec
                 if x != z:
                     i = i+1; x = z
-                    sys.stderr.write("\r %s %d \r"%("_oOo"[i%4],counted_size))
-                counted_size = counted_size + len(buf)
+                    if expected_size:
+                        perc='%3d%%|%-8d'%(100.0*counted_size/expected_size,expected_size)
+                    else:
+                        perc='%-14d'%(counted_size)
+                    sys.stderr.write("\r %s%s \r"%("_oOo"[i%4],perc))
                 hash_md5.update(buf)
                 hash_sha1.update(buf)
                 hash_sha256.update(buf)
@@ -370,10 +374,16 @@ class singlefile(object):
                     self.error = None
                     ## success
                 elif expected_size is not None:
-                    self.error = "loaded only %d bytes of %d"%(counted_size,expected_size)
-                    os.remove(self.tmpname)
-                    self.tmpname = None
-                    break
+                    if counted_size < expected_size:
+                        self.error = "loaded only %d bytes of %d"%(counted_size,expected_size)
+                        os.remove(self.tmpname)
+                        self.tmpname = None
+                        break
+                    else:
+                        # XXX hack (help force)
+                        self.error = None
+                        self.filesize = counted_size
+                        print "?? loaded %d of %d"%(counted_size,expected_size)
             else:
                 os.remove(self.tmpname)
                 self.tmpname = None
