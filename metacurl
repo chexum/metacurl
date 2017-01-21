@@ -51,6 +51,28 @@ class http_headerblock(object):
         lines (list): list of header fields
     """
 
+    def get_all_headers(self,name):
+        """Get all headers matching the name, tokenized"""
+        ## expects: values stripped of ows
+        ## Returns:
+        ## lines in a list
+        ## containing token value pairs in a list
+        ## [firsttoken, firstvalue or None, repeat of: token, value ]
+        res = []
+        try:
+            for h in self.headers[name.upper()]:
+                tokens = [t.strip('\x20\x09') for t in h.split(';')]
+                line = []
+                for t in tokens:
+                    z = t.split('=',1)
+                    z.append(None)
+                    line.extend(z[:2])
+                res.append(line)
+        except KeyError:
+            pass
+        return res
+
+
     def get_single_header(self,name):
         """Get a simple header, fail if multiple found"""
         try:
@@ -75,12 +97,24 @@ class http_headerblock(object):
         except KeyError:
             return None
 
+    # content-length - may have several occurrences, but all those must match
     def get_content_length(self):
-        n = self.get_duplicated_header('Content-Length')
+        a = self.get_all_headers('Content-Length')
+        val = None
+
         try:
-            return int(n)
+            val = int(a[0][0])
+        except (ValueError,TypeError,IndexError):
+            return None
+
+        try:
+            for l in a[1:]:
+                if val != int(l[0]):
+                    return None
         except (ValueError,TypeError):
             return None
+
+        return val
 
     def get_chrono_header(self,name):
         """Retrieve time-specific field value"""
@@ -256,15 +290,13 @@ class singlefile(object):
             if expected_size == 0: expected_size = None
 
 #CONTENT-DISPOSITION inline; filename="WWW.pdf"
+# =>
+# ['inline',None,'filename','"WWW.pdf"']
             try:
-                mimearr = hdr.get_single_header('Content-Disposition').split(';')
-                for k in mimearr[1:]:
-                    if k.strip().upper()[0:9]=='FILENAME=':
-                        # avoiding proper dequoting
-                        print "old",self.filename
-                        self.filename = k[10:].strip("\x27\x22")
-                        print "new",self.filename
-            except (KeyError,AttributeError):
+                for l in hdr.get_all_headers('Content-Disposition'):
+                    if len(l)>3 and l[3].upper().strip()=='FILENAME':
+                        self.filename = l[4].strip('\x27\x22')
+            except (KeyError,TypeError):
                 pass
 
             ## debugging to seek for new headers containing information
@@ -395,20 +427,15 @@ class singlefile(object):
             try: self.etag = hdr.get_single_header('Etag').strip("\x22\x27")
             except AttributeError: self.etag = None
 
-            # XXX tokenized access like content-disposition
+            # store Content-Type: mimetype; charset=whatever
+            self.mimetype = None
             try:
-                mimearr = hdr.get_single_header('Content-Type').split(';')
-            except:
-                mimearr = ['']
-            try:
-                self.mimetype = mimearr[0].strip()
-            except (KeyError,ValueError):
-                self.mimetype = None
-
-            for k in mimearr[1:]:
-                if k.strip().upper()[0:8]=='CHARSET=':
-                    # avoiding proper dequoting
-                    self.charset = k[9:].strip("\x27\x22")
+                for l in hdr.get_all_headers('Content-Type'):
+                    self.mimetype = l[0].strip()
+                    if len(l)>3 and l[3].upper().strip() == 'CHARSET':
+                        self.charset = l[4].strip()
+            except (TypeError,IndexError):
+                self.charset = None
 
             self.encoding = hdr.get_single_header('Content-Encoding')
             z = hdr.get_single_header('X-GOOG-Stored-Content-Encoding')
