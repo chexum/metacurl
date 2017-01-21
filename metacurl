@@ -469,7 +469,7 @@ class singlefile(object):
             pass
 
         # XXX try to match with constraints instead?
-        if self.mimetype.upper()[0:5] == 'TEXT/':
+        if self.mimetype is None or self.mimetype.upper()[0:5] == 'TEXT/':
             print "!! not saving, MIME type is %s"%(self.mimetype)
             return None
 
