@@ -217,6 +217,7 @@ class singlefile(object):
         while True:
             sys.stderr.write("\r-- %s %s  \r%s"%(download_type,url,ANSI_OFF),)
             all_args = curlopts[:]
+            all_args.append('--')
             all_args.append(url)
             run_curl = subprocess.Popen(all_args,stdout=subprocess.PIPE)
 
@@ -575,9 +576,16 @@ def main():
     # debug?
     parser.add_argument('URL',nargs='+')
     args = parser.parse_args()
+
     # XXX path for curl
-    curl_args=["curl","-s","-i"]
-#    enc=json.JSONEncoder()
+    curl_args=["curl"]
+
+    ## default arguments
+    # --silent and --include needs to be there always
+    curl_args.extend(['-s','-i'])
+    # try to add proxying unconditionally
+    try: curl_args.extend(['--socks5-hostname',os.environ['SOCKS5']])
+    except: pass
 
     for i,v in args.__dict__.items():
         if isinstance(v,list) and i in ['header',]:
@@ -591,11 +599,6 @@ def main():
         elif v:
             curl_args.extend(['--%s'%(i.replace('_','-')),'%s'%(v,)])
 
-    ## XXX add default headers (UA)
-    try: curl_args.extend(['--socks5-hostname',os.environ['SOCKS5']])
-    except: pass
-
-    curl_args.append('--')
 
     for url in args.URL:
         savedfile = singlefile(url,curl_args)
