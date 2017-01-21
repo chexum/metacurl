@@ -154,6 +154,7 @@ class http_headerblock(object):
                 (f,v)=l.split(':',1)
                 # field-name shouldn't have any, but anyway
                 f=f.strip("\x20\x09").upper()
+                ## provides: values stripped of ows
                 v=v.strip("\x20\x09")
                 try:
                     h[f].append(v)
@@ -180,7 +181,7 @@ class singlefile(object):
         self.orig_url = ""
         self.filename = None
         self.filesize = None
-        self.hashes=[] # md5,sha1,sha256[,githash]
+        self.hashes=[] # md5,sha1,sha256,*githash
         self.server = None
         self.etag = None
         self.mimetype = None
@@ -225,6 +226,7 @@ class singlefile(object):
                 hdr = http_headerblock(run_curl.stdout)
 
             if None == hdr.lines:
+                ## XXX kill first?
                 res = run_curl.wait()
                 if res == 35:
                     self.error = "curl returned err %d, try without -k"%(res,)
@@ -245,16 +247,13 @@ class singlefile(object):
                 if ' ' in loc: loc = loc.replace(' ','%20')
                 url = urlparse.urljoin(url,loc)
                 download_type='redirected to'
+                # content not seen yet, restarting from new url
                 continue
 
             ## prepare to process body
-            ## check status code to not give a chance to save error pages
             expected_size = hdr.get_content_length()
             if expected_size == 0: expected_size = None
 
-            # TODO merge with content-type tokenized
-#CONTENT-DISPOSITION attachment; filename=www-1.8.3.tar.xz
-#CONTENT-DISPOSITION inline;filename=WWW.pdf
 #CONTENT-DISPOSITION inline; filename="WWW.pdf"
             try:
                 mimearr = hdr.get_single_header('Content-Disposition').split(';')
@@ -430,6 +429,7 @@ class singlefile(object):
         if filename is None:
             filename = self.filename
         try:
+            # XXX even if duplicate, try to keep it recorded
             os.stat(filename)
             filename="%s.%s"%(filename,os.getpid())
             os.stat(filename)
@@ -543,8 +543,10 @@ def main():
 ## grep E\} src/tool_getparam.c|sed 's/[{} "]//g'
     # vvv
     ## Oa,remote-name-all,FALSE,
-    ## r,range,TRUE,                                                                                                                                 R,remote-time,FALSE,
-    ## s,silent,FALSE,                                                                                                                               S,show-error,FALSE,
+    ## r,range,TRUE,
+    ## R,remote-time,FALSE,
+    ## s,silent,FALSE,
+    ## S,show-error,FALSE,
     # i,include,FALSE,
     # k,insecure,FALSE,
     # K,config,TRUE,
