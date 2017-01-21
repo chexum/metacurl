@@ -429,8 +429,7 @@ class singlefile(object):
                         self.filesize = counted_size
                         print "\n?? loaded %d of %d"%(counted_size,expected_size)
             else:
-                os.remove(self.tmpname)
-                self.tmpname = None
+                # XXX did remove, but may need for redirect parsing
                 break
 
             self.server = hdr.get_single_header('Server')
