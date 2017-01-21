@@ -584,11 +584,32 @@ def main():
     curl_args=["curl"]
 
     ## default arguments
+    # User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:50.0) Gecko/20100101 Firefox/50.0
+    need_headers={
+        'USER-AGENT':'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36',
+        'DNT':'DNT: 1',
+      }
     # --silent and --include needs to be there always
     curl_args.extend(['-s','-i'])
     # try to add proxying unconditionally
     try: curl_args.extend(['--socks5-hostname',os.environ['SOCKS5']])
     except: pass
+    # add those headers if not present
+    add_headers = need_headers.copy()
+    try:
+        headers = args.__dict__['header']
+        if headers is None:
+            raise TypeError
+        for h in headers:
+            k=h.split(':',1)
+            k=k[0].upper().strip('\x20\x09')
+            if k in add_headers:
+                del add_headers[k]
+    except:
+        args.__dict__['header']=[]
+
+    for k,v in add_headers.iteritems():
+        args.__dict__['header'].append(v)
 
     for i,v in args.__dict__.items():
         if isinstance(v,list) and i in ['header',]:
