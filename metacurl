@@ -556,6 +556,8 @@ def main():
     # D,dump-header,TRUE,
     parser.add_argument('-i','--include',action='store_true')
     parser.add_argument('--remote-name-all',action='store_true')
+    parser.add_argument('-b','--cookie')
+    parser.add_argument('-c','--cookie-jar')
     parser.add_argument('-v','--verbose',action='store_true')
     parser.add_argument('-N','--no-buffer',action='store_true')
     parser.add_argument('-s','--silent',action='store_true')
@@ -564,6 +566,7 @@ def main():
     parser.add_argument('-K','--config')
     parser.add_argument('-H','--header',action='append')
     parser.add_argument('--data-binary')
+    parser.add_argument('--data')
     parser.add_argument('--proxy-header',action='store_true')
     parser.add_argument('--compressed',action='store_true')
     parser.add_argument('--socks5-hostname')
