@@ -276,7 +276,7 @@ class singlefile(object):
                    (n in ['CONTENT-LENGTH','CONTENT-TYPE','ETAG','SET-COOKIE','P3P']) or \
                    (n[0:10] in ['X-GOOG-MET','X-GOOG-STO','X-GOOG-GEN','STRICT-TRA','X-GOOG-HAS','X-AMZ-REQU','X-AMZ-ID-2']) or \
                    (n[0:10] in ['CF-CACHE-S','X-XSS-PROT','X-CONTENT-','X-POWERED-','X-UA-COMPA','TIMING-ALL','X-GITHUB-R']) or \
-                   (n[0:10] in ['X-FASTLY-R','X-GEO-BLOC','CONTENT-SE','X-SERVED-B','SOURCE-AGE']) or \
+                   (n[0:10] in ['X-FASTLY-R','X-GEO-BLOC','CONTENT-SE','X-SERVED-B','SOURCE-AGE','TRANSFER-E']) or \
                    False: continue
                 if ('CONTENT' in n) or \
                    ('LAST' in n) or \
