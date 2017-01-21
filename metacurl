@@ -232,6 +232,9 @@ class singlefile(object):
         else:
             frag = None
 
+        # check if any fixing is needed
+        url,frag = self.canonical_url(url,frag)
+
         # save original url and extract possible filename (without parameters)
         self.orig_url = url
         parts = url.split('?',1)[0].split('/')
@@ -280,9 +283,7 @@ class singlefile(object):
                 run_curl.kill()
                 # TODO handle failure
                 loc = hdr.headers['LOCATION'][0]
-                # unsure
-                if ' ' in loc: loc = loc.replace(' ','%20')
-                url = urlparse.urljoin(url,loc)
+                refer,url = self.canonical_redirect(url,loc)
                 self.progress='redirected to'
                 # content not seen yet, restarting from new url
                 continue
@@ -344,6 +345,9 @@ class singlefile(object):
             if expected_size:
                 hash_githash=hashlib.sha1()
                 hash_githash.update(b"blob %d\0"%(expected_size))
+
+            # correct filename if needed
+            self.filename = self.canonical_filename(self.filename)
 
             ## start downloading to a temporary file
             if hdr.status_code != 200:
@@ -448,8 +452,31 @@ class singlefile(object):
             self.hashes=[hash_md5.hexdigest(),hash_sha1.hexdigest(),hash_sha256.hexdigest(),None]
             if hash_githash: self.hashes[3]=hash_githash.hexdigest()
 
-            break
+            refer,url = self.content_redirect(url,self.tmpname,self.mimetype)
+            if url is None:
+                break
+            # else start again
+
         return None
+
+    def canonical_url(self,url,frag):
+        return url,frag
+
+    def canonical_redirect(self,url,loc):
+        orig_url = url
+        # unsure if correct
+        loc = loc[:]
+        if ' ' in loc: loc = loc.replace(' ','%20')
+        url = urlparse.urljoin(url,loc)
+        return orig_url,url
+
+    def canonical_filename(self,filename):
+        if filename[-4:].upper() == '.PDF':
+            return filename[:-4]+'.pdf'
+        return filename
+
+    def content_redirect(self,url,tmpname,mimetype):
+        return None,None
 
     def savefile(self,filename=None,broken=False):
         if self.error and not broken:
