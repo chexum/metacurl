@@ -20,7 +20,7 @@ import urllib
 FL='FLMETADIR'
 N_ALL=['file','size','stamp','md5','sha1','sha256','githash','mimetype','charset','encoding','url','stored','server','etag']
 ANSI_OFF  = b'\033[m\033[K'
-ANSI_RED  = b'\033[32m'
+ANSI_RED  = b'\033[31m'
 ANSI_GREEN= b'\033[32m'
 
 class MetaFLJSONEncoder(json.JSONEncoder):
