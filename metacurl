@@ -606,6 +606,7 @@ def main():
     # -s should be always there (silent)
     # -o should not be present (output)
     parser.add_argument('--2.0',action='store_const',const=False,default=False)
+    parser.add_argument('--1.0',action='store_const',const=False,default=False)
     # debug?
     parser.add_argument('URL',nargs='+')
     args = parser.parse_args()
@@ -645,7 +646,7 @@ def main():
         if isinstance(v,list) and i in ['header',]:
             for n in v:
                 curl_args.extend(['--%s'%(i),'%s'%(n,)])
-        elif i in ['2_0','dump_header','silent','include','URL']:
+        elif i in ['1_0','2_0','dump_header','silent','include','URL']:
             # silent and include will be added always
             pass
         elif v==True:
