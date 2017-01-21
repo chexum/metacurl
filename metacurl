@@ -212,6 +212,7 @@ class singlefile(object):
 
     def __init__(self,url,curlopts):
         self.error = "not initialized"
+        self.progress = "downloading"
         self.orig_url = ""
         self.filename = None
         self.filesize = None
@@ -246,10 +247,11 @@ class singlefile(object):
         except:
             pass
         self.filename=hunk
-        download_type='fetching'
 
+        # initiallly, cursor is at the start of the line
+        # progress is expected to keep the cursor mid-line (right after stats)
         while True:
-            sys.stderr.write("\r-- %s %s  \r%s"%(download_type,url,ANSI_OFF),)
+            sys.stderr.write("\r-- %s %s %s  \r"%(self.progress,url,ANSI_OFF,))
             all_args = curlopts[:]
             all_args.append('--')
             all_args.append(url)
@@ -269,7 +271,7 @@ class singlefile(object):
                     self.error = "curl returned err %d, try with -k"%(res,)
                 else:
                     self.error = "curl returned err %d"%(res,)
-                print "!! %s"%self.error
+                sys.stderr.write("\n!! %s\r"%self.error)
                 break
 
             ## check if redirect
@@ -281,7 +283,7 @@ class singlefile(object):
                 # unsure
                 if ' ' in loc: loc = loc.replace(' ','%20')
                 url = urlparse.urljoin(url,loc)
-                download_type='redirected to'
+                self.progress='redirected to'
                 # content not seen yet, restarting from new url
                 continue
 
@@ -314,7 +316,7 @@ class singlefile(object):
                    ('LAST' in n) or \
                    ('GOOG' in n) or \
                    True:
-                   print n,":".join(hdr.headers[n])
+                   print "\n"+n + ":".join(hdr.headers[n])
 
             ## x-goog-hash: md5=<base64 of binary>
             try:
@@ -324,7 +326,7 @@ class singlefile(object):
                         dig = binascii.hexlify(base64.b64decode(d))
                         if self.expected_md5:
                             if self.expected_md5 != dig:
-                                print "!! different MD5 digests to check"
+                                sys.stderr.write("\n!! different MD5 digests to check")
                         else:
                             self.expected_md5 = dig
             except (KeyError,ValueError,TypeError):
@@ -346,6 +348,7 @@ class singlefile(object):
             ## start downloading to a temporary file
             if hdr.status_code != 200:
                 self.error = "HTTP status %d %s"%(hdr.status_code,hdr.reason)
+                sys.stderr.write("\n!! %s%s%s"%(ANSI_RED,self.error,ANSI_OFF))
                 f = tempfile.mkstemp(prefix='.err%d'%(hdr.status_code),dir='.')
             else:
                 self.error = "downloading"
@@ -367,7 +370,7 @@ class singlefile(object):
                 if x != z:
                     i = i+1; x = z
                     if expected_size:
-                        perc='%3d%%|%-8d'%(100.0*counted_size/expected_size,expected_size)
+                        perc='%3d%%|%-9d'%(100.0*counted_size/expected_size,expected_size)
                     else:
                         perc='%-14d'%(counted_size)
                     sys.stderr.write("\r %s%s \r"%("_oOo"[i%4],perc))
@@ -416,7 +419,7 @@ class singlefile(object):
                         # XXX hack (help force)
                         self.error = None
                         self.filesize = counted_size
-                        print "?? loaded %d of %d"%(counted_size,expected_size)
+                        print "\n?? loaded %d of %d"%(counted_size,expected_size)
             else:
                 os.remove(self.tmpname)
                 self.tmpname = None
@@ -450,7 +453,7 @@ class singlefile(object):
 
     def savefile(self,filename=None,broken=False):
         if self.error and not broken:
-            print "!! cannot save, %s%s%s\n"%(ANSI_RED,self.error,ANSI_OFF)
+            sys.stderr.write("!! cannot save, %s%s%s\n"%(ANSI_RED,self.error,ANSI_OFF))
             return None
         if not self.tmpname:
             return None
@@ -496,7 +499,7 @@ class singlefile(object):
             report_color = ANSI_GREEN
             good.append('OK')
             ok = ' '.join(good)
-        sys.stderr.write("\r%s %s%s%s (%d)  \r\n"%(filename,report_color,ok,ANSI_OFF,self.filesize))
+        sys.stderr.write("\r%s %s%s%s (%d)\n"%(filename,report_color,ok,ANSI_OFF,self.filesize))
 
         ## TODO avoid if duplicate
         ## 1/3 write .meta as text with some fields
