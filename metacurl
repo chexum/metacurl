@@ -224,6 +224,8 @@ class singlefile(object):
         self.encoding = None
         self.tmpname = None
         self.expected_md5 = None
+        self.ext_url = None
+        self.ext_args = []
 
         if '#' in url:
             ## TODO parse fragment for hash spec
@@ -237,6 +239,7 @@ class singlefile(object):
 
         # save original url and extract possible filename (without parameters)
         self.orig_url = url
+        self.ext_url = url
         parts = url.split('?',1)[0].split('/')
         if parts[-1] == '' or parts[-1][0] in '&?#' or parts[-1] == 'download':
             hunk=parts[-2]
@@ -256,6 +259,7 @@ class singlefile(object):
         while True:
             sys.stderr.write("\r-- %s %s %s  \r"%(self.progress,url,ANSI_OFF,))
             all_args = curlopts[:]
+            all_args.extend(self.ext_args)
             all_args.append('--')
             all_args.append(url)
             run_curl = subprocess.Popen(all_args,stdout=subprocess.PIPE)
