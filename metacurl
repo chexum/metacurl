@@ -301,8 +301,8 @@ class singlefile(object):
 # ['inline',None,'filename','"WWW.pdf"']
             try:
                 for l in hdr.get_all_headers('Content-Disposition'):
-                    if len(l)>3 and l[3].upper().strip()=='FILENAME':
-                        self.filename = l[4].strip('\x27\x22')
+                    if len(l)>3 and l[2].upper().strip()=='FILENAME':
+                        self.filename = l[3].strip('\x27\x22')
             except (KeyError,TypeError):
                 pass
 
@@ -442,8 +442,8 @@ class singlefile(object):
             try:
                 for l in hdr.get_all_headers('Content-Type'):
                     self.mimetype = l[0].strip()
-                    if len(l)>3 and l[3].upper().strip() == 'CHARSET':
-                        self.charset = l[4].strip()
+                    if len(l)>3 and l[2].upper().strip() == 'CHARSET':
+                        self.charset = l[3].strip()
             except (TypeError,IndexError):
                 self.charset = None
 
