@@ -292,6 +292,7 @@ class singlefile(object):
             ## check if redirect
             if (hdr.status_code / 100) == 3:
                 self.error = "redirecting"
+                self.ext_args = []
                 run_curl.kill()
                 # TODO handle failure
                 loc = hdr.headers['LOCATION'][0]
