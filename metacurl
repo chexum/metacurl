@@ -360,7 +360,7 @@ class singlefile(object):
                 hash_githash.update(b"blob %d\0"%(expected_size))
 
             # correct filename if needed
-            self.filename = self.canonical_filename(self.filename)
+            self.filename = self.canonical_filename(self.filename,url)
 
             ## start downloading to a temporary file
             if hdr.status_code != 200:
@@ -482,9 +482,12 @@ class singlefile(object):
         url = urlparse.urljoin(url,loc)
         return orig_url,url
 
-    def canonical_filename(self,filename):
+    def canonical_filename(self,filename,url):
         if filename[-4:].upper() == '.PDF':
             return filename[:-4]+'.pdf'
+        x = url.split('/')[-1]
+        if x[-4:].upper() == '.PDF':
+            return x[:-4]+'.pdf'
         return filename
 
     def content_redirect(self,url,tmpname,mimetype):
