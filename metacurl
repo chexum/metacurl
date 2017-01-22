@@ -263,11 +263,19 @@ class singlefile(object):
             all_args.append('--')
             all_args.append(url)
             run_curl = subprocess.Popen(all_args,stdout=subprocess.PIPE)
+            #sys.stderr.write("\n"+' | '.join(all_args)) # XXX
 
             hdr = http_headerblock(run_curl.stdout)
             # if via proxy, there might be a first HTTP response about the connection
             if None != hdr.lines and len(hdr.lines) == 0 and hdr.status_code == 200:
                 hdr = http_headerblock(run_curl.stdout)
+
+            if hdr.status_code == 200:
+                sys.stderr.write("\r-- %s -- %s%s%s\n"%(url,ANSI_GREEN,str(hdr.status_code),ANSI_OFF)) # XXX
+            elif hdr.status_code > 305:
+                sys.stderr.write("\r-- %s -- %s%s%s\n"%(url,ANSI_RED,  str(hdr.status_code),ANSI_OFF)) # XXX
+            else:
+                sys.stderr.write("\r-- %s -- %s%s%s\n"%(url,ANSI_OFF,  str(hdr.status_code),ANSI_OFF)) # XXX
 
             if None == hdr.lines:
                 ## XXX kill first?
@@ -278,7 +286,7 @@ class singlefile(object):
                     self.error = "curl returned err %d, try with -k"%(res,)
                 else:
                     self.error = "curl returned err %d"%(res,)
-                sys.stderr.write("\n!! %s\r"%self.error)
+                sys.stderr.write("!! %s\n"%self.error)
                 break
 
             ## check if redirect
@@ -321,7 +329,7 @@ class singlefile(object):
                    ('LAST' in n) or \
                    ('GOOG' in n) or \
                    True:
-                   print "\n"+n + ":".join(hdr.headers[n])
+                   print n + ":".join(hdr.headers[n])
 
             ## x-goog-hash: md5=<base64 of binary>
             try:
@@ -331,7 +339,7 @@ class singlefile(object):
                         dig = binascii.hexlify(base64.b64decode(d))
                         if self.expected_md5:
                             if self.expected_md5 != dig:
-                                sys.stderr.write("\n!! different MD5 digests to check")
+                                sys.stderr.write("!! different MD5 digests to check\n")
                         else:
                             self.expected_md5 = dig
             except (KeyError,ValueError,TypeError):
@@ -370,7 +378,7 @@ class singlefile(object):
                 shortened_name = ' .../'+self.filename[-95:]
                 shortened_url = shortened_url[:120-len(shortened_name)]+shortened_name
 
-            sys.stderr.write("\r %15s%s%s \r"%('',shortened_url,ANSI_OFF))
+            sys.stderr.write("\r %15s %s%s \r"%('',shortened_url,ANSI_OFF))
             for buf in run_curl.stdout:
                 f.write(buf)
                 counted_size = counted_size + len(buf)
@@ -427,7 +435,7 @@ class singlefile(object):
                         # XXX hack (help force)
                         self.error = None
                         self.filesize = counted_size
-                        print "\n?? loaded %d of %d"%(counted_size,expected_size)
+                        print "\n?? loaded %d of %d\n"%(counted_size,expected_size)
             else:
                 # XXX did remove, but may need for redirect parsing
                 break
@@ -500,7 +508,7 @@ class singlefile(object):
 
         # XXX try to match with constraints instead?
         if self.mimetype is None or self.mimetype.upper()[0:5] == 'TEXT/':
-            print "!! not saving, MIME type is %s"%(self.mimetype)
+            sys.stderr.write("!! not saving, MIME type is %s%s\n"%(self.mimetype,ANSI_OFF))
             return None
 
         # postponing these - the temp file won't be seen as proper
