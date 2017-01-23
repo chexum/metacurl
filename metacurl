@@ -11,6 +11,7 @@ import json
 import sqlite3
 import base64,binascii
 import urllib
+import HTMLParser
 
 
 ###########################################################################
@@ -330,7 +331,7 @@ class singlefile(object):
                    ('LAST' in n) or \
                    ('GOOG' in n) or \
                    True:
-                   print n + ":".join(hdr.headers[n])
+                   sys.stderr.write("%s %s\n"%(n,":".join(hdr.headers[n])))
 
             ## x-goog-hash: md5=<base64 of binary>
             try:
@@ -365,7 +366,7 @@ class singlefile(object):
             ## start downloading to a temporary file
             if hdr.status_code != 200:
                 self.error = "HTTP status %d %s"%(hdr.status_code,hdr.reason)
-                sys.stderr.write("\n!! %s%s%s"%(ANSI_RED,self.error,ANSI_OFF))
+                sys.stderr.write("!! %s%s%s"%(ANSI_RED,self.error,ANSI_OFF))
                 f = tempfile.mkstemp(prefix='.err%d'%(hdr.status_code),dir='.')
             else:
                 self.error = "downloading"
@@ -512,8 +513,9 @@ class singlefile(object):
 
         # XXX try to match with constraints instead?
         if self.mimetype is None or self.mimetype.upper()[0:5] == 'TEXT/':
-            sys.stderr.write("!! not saving, MIME type is %s%s\n"%(self.mimetype,ANSI_OFF))
-            return None
+            if self.filename[-3:].upper() not in ('SIG','ASC','TXT'):
+                sys.stderr.write("!! not saving, MIME type is %s%s\n"%(self.mimetype,ANSI_OFF))
+                return None
 
         # postponing these - the temp file won't be seen as proper
         if self.stamp:
