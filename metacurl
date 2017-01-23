@@ -333,6 +333,15 @@ class singlefile(object):
                    True:
                    sys.stderr.write("%s %s\n"%(n,":".join(hdr.headers[n])))
 
+            ## http://download.system-cfg.com/f.php?h=2Z0Khs23&d=1
+            if 'CONTENT-MD5' in hdr.headers:
+                d = hdr.get_single_header('Content-MD5')
+                dig = binascii.hexlify(base64.b64decode(d))
+                if self.expected_md5:
+                    if self.expected_md5 != dig:
+                        sys.stderr.write("!! different MD5 digests to check\n")
+                else:
+                    self.expected_md5 = dig
             ## x-goog-hash: md5=<base64 of binary>
             try:
                 for h in hdr.headers['X-GOOG-HASH']:
