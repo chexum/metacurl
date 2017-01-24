@@ -675,8 +675,8 @@ def main():
     ## default arguments
     # User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:50.0) Gecko/20100101 Firefox/50.0
     need_headers={
-        'USER-AGENT':'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.87 Safari/537.36',
         'DNT':'DNT: 1',
+        'ACCEPT-ENCODING':'gzip, deflate',
       }
     # --silent and --include needs to be there always
     curl_args.extend(['-s','-i'])
