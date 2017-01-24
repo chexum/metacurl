@@ -225,6 +225,7 @@ class singlefile(object):
         self.encoding = None
         self.tmpname = None
         self.expected_md5 = None
+        self.refer = None
         self.ext_url = None
         self.ext_args = []
 
@@ -239,8 +240,10 @@ class singlefile(object):
         url,frag = self.canonical_url(url,frag)
 
         # save original url and extract possible filename (without parameters)
-        self.orig_url = url
+        if not self.orig_url:
+            self.orig_url = url
         self.ext_url = url
+
         parts = url.split('?',1)[0].split('/')
         if parts[-1] == '' or parts[-1][0] in '&?#' or parts[-1] == 'download':
             hunk=parts[-2]
@@ -261,6 +264,8 @@ class singlefile(object):
             sys.stderr.write("\r-- %s %s %s  \r"%(self.progress,url,ANSI_OFF,))
             all_args = curlopts[:]
             all_args.extend(self.ext_args)
+            if self.refer:
+                all_args.extend(['-H','Referer: %s'%(self.refer),])
             all_args.append('--')
             all_args.append(url)
             run_curl = subprocess.Popen(all_args,stdout=subprocess.PIPE)
@@ -297,7 +302,7 @@ class singlefile(object):
                 run_curl.kill()
                 # TODO handle failure
                 loc = hdr.headers['LOCATION'][0]
-                refer,url = self.canonical_redirect(url,loc)
+                self.refer,url = self.canonical_redirect(url,loc)
                 self.progress='redirected to'
                 # content not seen yet, restarting from new url
                 continue
@@ -474,7 +479,7 @@ class singlefile(object):
             self.hashes=[hash_md5.hexdigest(),hash_sha1.hexdigest(),hash_sha256.hexdigest(),None]
             if hash_githash: self.hashes[3]=hash_githash.hexdigest()
 
-            refer,url = self.content_redirect(url,self.tmpname,self.mimetype)
+            self.refer,url = self.content_redirect(url,self.tmpname,self.mimetype)
             if url is None:
                 break
             # else start again
