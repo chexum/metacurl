@@ -3,3 +3,5 @@
 robots.txt
 .*.meta
 .status.*
+.build
+test
