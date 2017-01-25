@@ -620,7 +620,6 @@ class singlefile(object):
         try:
             if self.tmpname:
                 os.remove(self.tmpname);
-                print "removed: %s"%(self.tmpname)
                 self.tmpname = None
         except OSError: pass
 
