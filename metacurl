@@ -13,7 +13,6 @@ import base64,binascii
 import urllib
 import HTMLParser
 
-
 ###########################################################################
 ###########################################################################
 
@@ -256,7 +255,8 @@ class singlefile(object):
                 hunk = x
         except:
             pass
-        self.filename=hunk
+        self.filename = hunk
+        self.mimetype = None
 
         # initiallly, cursor is at the start of the line
         # progress is expected to keep the cursor mid-line (right after stats)
@@ -462,7 +462,6 @@ class singlefile(object):
             except AttributeError: self.etag = None
 
             # store Content-Type: mimetype; charset=whatever
-            self.mimetype = None
             try:
                 for l in hdr.get_all_headers('Content-Type'):
                     self.mimetype = l[0].strip()
