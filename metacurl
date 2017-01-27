@@ -332,9 +332,9 @@ class singlefile(object):
                    (n[0:10] in ['CF-CACHE-S','X-XSS-PROT','X-CONTENT-','X-POWERED-','X-UA-COMPA','TIMING-ALL','X-GITHUB-R']) or \
                    (n[0:10] in ['X-FASTLY-R','X-GEO-BLOC','CONTENT-SE','X-SERVED-B','SOURCE-AGE','TRANSFER-E']) or \
                    False: continue
-                if ('CONTENT' in n) or \
-                   ('LAST' in n) or \
-                   ('GOOG' in n) or \
+                if ('CONTENT-' in n) or \
+                   ('LAST-' in n) or \
+                   ('GOOG-' in n) or \
                    True:
                    sys.stderr.write("%s %s\n"%(n,":".join(hdr.headers[n])))
 
