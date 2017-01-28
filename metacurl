@@ -559,7 +559,7 @@ class singlefile(object):
         report_color = ANSI_OFF
         if len(bad):
             report_color = ANSI_RED
-            ok = 'BAD'+' '.join(bad)
+            ok = 'BAD '+' '.join(bad)
         else:
             report_color = ANSI_GREEN
             good.append('OK')
