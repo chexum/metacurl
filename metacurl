@@ -361,6 +361,14 @@ class singlefile(object):
             except (KeyError,ValueError,TypeError):
                 pass
 
+            try:
+                self.etag = hdr.get_single_header('Etag').strip("\x22\x27")
+                # hack - sometimes MD5 is part of the etag
+                m = re.match('([0-9a-z]{32})($|:)',self.etag)
+                if m:
+                    self.expected_md5 = m.group(1)
+            except AttributeError: self.etag = None
+
             ## more places to fetch data from
 ## content-description: Midnight Commander v4.7.3 (latest) sha256sum: 8777c184715e8b0a6301ac6da886cbce0fc4a3a6fdb833299c99bc6a23918f36
 ## < etag: "f3146e44ef1182467592e2f2f4665260"
@@ -457,9 +465,6 @@ class singlefile(object):
                 break
 
             self.server = hdr.get_single_header('Server')
-
-            try: self.etag = hdr.get_single_header('Etag').strip("\x22\x27")
-            except AttributeError: self.etag = None
 
             # store Content-Type: mimetype; charset=whatever
             try:
