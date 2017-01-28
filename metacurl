@@ -168,12 +168,12 @@ class http_headerblock(object):
             if l: l=l.rstrip("\r\n")
             if l == '':
                 break
-            # XXX folding not tested
+            # XXX folding not well tested
             if l[0] in "\x20\x09":
                 l = l.strip("\x20\x09")
                 if len(lines)>0:
-                    # not perfect for Set-Cookie, but that isn't in responses
-                    lines[-1].append(" "+l)
+                    # not perfect for traditional Set-Cookie (no testing available)
+                    lines[-1] = "%s %s"%(lines[-1],l)
                 else:
                     # replicate bogus field
                     lines.append(" "+l)
