@@ -530,7 +530,10 @@ class singlefile(object):
             pass
 
         # XXX try to match with constraints instead?
-        if self.mimetype is None or self.mimetype.upper()[0:5] == 'TEXT/':
+        if self.mimetype is None or self.mimetype.upper() == 'TEXT/HTML':
+            sys.stderr.write("!! not saving, MIME type is %s%s\n"%(self.mimetype,ANSI_OFF))
+            return None
+        if self.mimetype.upper()[0:5] == 'TEXT/':
             if self.filename.split('.')[-1].upper() not in ['SIG','ASC','TXT','C','ASM']:
                 sys.stderr.write("!! not saving, MIME type is %s%s\n"%(self.mimetype,ANSI_OFF))
                 return None
