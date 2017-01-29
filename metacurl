@@ -17,14 +17,18 @@ import HTMLParser
 ###########################################################################
 
 # environment name for user's meta filelist directory
-FL='FLMETADIR'
-N_ALL=['file','size','stamp','md5','sha1','sha256','githash','mimetype','charset','encoding','url','stored','server','etag']
-ANSI_OFF  = b'\033[m\033[K'
-ANSI_RED  = b'\033[31m'
-ANSI_GREEN= b'\033[32m'
+FL = 'FLMETADIR'
+N_ALL = [
+    'file', 'size', 'stamp', 'md5', 'sha1', 'sha256', 'githash', 'mimetype',
+    'charset', 'encoding', 'url', 'stored', 'server', 'etag'
+]
+ANSI_OFF = b'\033[m\033[K'
+ANSI_RED = b'\033[31m'
+ANSI_GREEN = b'\033[32m'
+
 
 class MetaFLJSONEncoder(json.JSONEncoder):
-    def encode(self,o):
+    def encode(self, o):
         if isinstance(o,dict):
             return "{" + \
                 ",".join(["%s:%s"%(self.encode(i),self.encode(o[i] if i in o else None)) \
@@ -51,7 +55,7 @@ class http_headerblock(object):
         lines (list): list of header fields
     """
 
-    def get_all_headers(self,name):
+    def get_all_headers(self, name):
         """Get all headers matching the name, tokenized"""
         ## expects: values stripped of ows
         ## Returns:
@@ -72,8 +76,7 @@ class http_headerblock(object):
             pass
         return res
 
-
-    def get_single_header(self,name):
+    def get_single_header(self, name):
         """Get a simple header, fail if multiple found"""
         try:
             allvalues = self.headers[name.upper()]
@@ -83,7 +86,7 @@ class http_headerblock(object):
         except (KeyError):
             return None
 
-    def get_duplicated_header(self,name):
+    def get_duplicated_header(self, name):
         """Get a single header, if there are multiple headers, return
         only if they all match"""
         try:
@@ -116,7 +119,7 @@ class http_headerblock(object):
 
         return val
 
-    def get_chrono_header(self,name):
+    def get_chrono_header(self, name):
         """Retrieve time-specific field value"""
 #   Thu, 05 Sep 2002 08:34:38 GMT
 #   September, 08-Sun-02 13:51:43 GMT
@@ -210,7 +213,7 @@ class singlefile(object):
     Retrieve a single file by using curl and inspecting the output
     """
 
-    def __init__(self,url,curlopts):
+    def __init__(self, url, curlopts):
         self.error = "not initialized"
         self.progress = "downloading"
         self.orig_url = ""
@@ -501,10 +504,10 @@ class singlefile(object):
 
         return None
 
-    def canonical_url(self,url,frag):
+    def canonical_url(self, url, frag):
         return url,frag
 
-    def canonical_redirect(self,url,loc):
+    def canonical_redirect(self, url, loc):
         orig_url = url
         # unsure if correct
         loc = loc[:]
@@ -512,7 +515,7 @@ class singlefile(object):
         url = urlparse.urljoin(url,loc)
         return orig_url,url
 
-    def canonical_filename(self,filename,url):
+    def canonical_filename(self, filename, url):
         if filename[-4:].upper() == '.PDF':
             return filename[:-4]+'.pdf'
         x = url.split('/')[-1]
@@ -520,10 +523,10 @@ class singlefile(object):
             return x[:-4]+'.pdf'
         return filename
 
-    def content_redirect(self,url,tmpname,mimetype):
+    def content_redirect(self, url, tmpname, mimetype):
         return None,None
 
-    def savefile(self,filename=None,broken=False):
+    def savefile(self, filename=None, broken=False):
         if self.error and not broken:
             sys.stderr.write("!! cannot save, %s%s%s\n"%(ANSI_RED,self.error,ANSI_OFF))
             return None
