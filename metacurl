@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 
-import subprocess,os,hashlib
+import subprocess, os, hashlib
 import tempfile
 import urlparse
 import re
-import datetime,dateutil.parser,time
-import platform,sys
+import datetime, dateutil.parser, time
+import platform, sys
 import argparse
 import json
 import sqlite3
-import base64,binascii
+import base64, binascii
 import urllib
 import HTMLParser
 
