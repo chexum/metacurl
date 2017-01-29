@@ -29,13 +29,14 @@ ANSI_GREEN = b'\033[32m'
 
 class MetaFLJSONEncoder(json.JSONEncoder):
     def encode(self, o):
-        if isinstance(o,dict):
+        if isinstance(o, dict):
             return "{" + \
                 ",".join(["%s:%s"%(self.encode(i),self.encode(o[i] if i in o else None)) \
                           for i in N_ALL]) + \
                "}"
         else:
-            return json.JSONEncoder.encode(self,o)
+            return json.JSONEncoder.encode(self, o)
+
 
 ###########################################################################
 ###########################################################################
@@ -69,7 +70,7 @@ class http_headerblock(object):
                 tokens = [t.strip('\x20\x09') for t in h.split(';')]
                 line = []
                 for t in tokens:
-                    z = t.split('=',1)
+                    z = t.split('=', 1)
                     z.append(None)
                     line.extend(z[:2])
                 res.append(line)
@@ -95,7 +96,7 @@ class http_headerblock(object):
             cl = allvalues[0]
             for s in allvalues[1:]:
                 if s != cl:
-                    print "!! ambiguous header %s (%s:%s)",name,s,cl
+                    print "!! ambiguous header %s (%s:%s)", name, s, cl
                     return None
             return cl
         except KeyError:
@@ -108,14 +109,14 @@ class http_headerblock(object):
 
         try:
             val = int(a[0][0])
-        except (ValueError,TypeError,IndexError):
+        except (ValueError, TypeError, IndexError):
             return None
 
         try:
             for l in a[1:]:
                 if val != int(l[0]):
                     return None
-        except (ValueError,TypeError):
+        except (ValueError, TypeError):
             return None
 
         return val
@@ -133,71 +134,72 @@ class http_headerblock(object):
             d = dateutil.parser.parse(n)
             t = int(d.strftime("%s"))
             return t
-        except (ValueError,AttributeError):
+        except (ValueError, AttributeError):
             return None
 
     def __str__(self):
         if self.http_ver:
-            return "* [%s] %s %s %s\n"%(len(self.lines),self.http_ver,self.status_code,self.reason)
+            return "* [%s] %s %s %s\n" % (len(self.lines), self.http_ver,
+                                          self.status_code, self.reason)
         else:
             return "?"
 
     def __init__(self, pipe):
-        self.lines = None #: list of header lines
+        self.lines = None  #: list of header lines
         self.headers = {}
-        self.http_ver = None #: HTTP version token
-        self.status_code = None #: HTTP status code (3 digit)
-        self.reason = None #: HTTP reason phrase
+        self.http_ver = None  #: HTTP version token
+        self.status_code = None  #: HTTP status code (3 digit)
+        self.reason = None  #: HTTP reason phrase
 
         # https://tools.ietf.org/html/rfc7230#section-3.1.2
         # status-line = HTTP-version SP status-code SP reason-phrase CRLF
-        l=''
+        l = ''
         for l in pipe:
-            if l: l=l.rstrip("\x20\x09\r\n")
+            if l: l = l.rstrip("\x20\x09\r\n")
             break
         else:
             return None
 
         try:
-            (v,c,r)=l.split(None,2)
+            (v, c, r) = l.split(None, 2)
         except ValueError:
-            (v,c)=l.split(None,1)
-            r='None given'
-        (self_http_ver,self.status_code,self.reason)=(v,int(c),r.strip())
+            (v, c) = l.split(None, 1)
+            r = 'None given'
+        (self_http_ver, self.status_code, self.reason) = (v, int(c), r.strip())
 
         # https://tools.ietf.org/html/rfc7230#section-3.1.2
         # header-field   = field-name ":" OWS field-value OWS
-        lines=[]
+        lines = []
         for l in pipe:
-            if l: l=l.rstrip("\r\n")
+            if l: l = l.rstrip("\r\n")
             if l == '':
                 break
             # XXX folding not well tested
             if l[0] in "\x20\x09":
                 l = l.strip("\x20\x09")
-                if len(lines)>0:
+                if len(lines) > 0:
                     # not perfect for traditional Set-Cookie (no testing available)
-                    lines[-1] = "%s %s"%(lines[-1],l)
+                    lines[-1] = "%s %s" % (lines[-1], l)
                 else:
                     # replicate bogus field
-                    lines.append(" "+l)
+                    lines.append(" " + l)
             else:
                 l = l.rstrip("\x20\x09")
                 lines.append(l)
 
         # now parse the lines to header fields
-        h={}
+        h = {}
         for l in lines:
             try:
-                (f,v)=l.split(':',1)
+                (f, v) = l.split(':', 1)
                 # field-name shouldn't have any, but anyway
-                f=f.strip("\x20\x09").upper()
+                f = f.strip("\x20\x09").upper()
                 ## provides: values stripped of ows
-                v=v.strip("\x20\x09")
+                v = v.strip("\x20\x09")
                 try:
                     h[f].append(v)
                 except KeyError:
-                    h[f]=[v]
+                    h[f] = [v]
             except ValueError:
                 # XXX really bad, but stay robust
                 pass
@@ -222,7 +224,7 @@ class singlefile(object):
         self.orig_url = ""
         self.filename = None
         self.filesize = None
-        self.hashes=[] # md5,sha1,sha256,*githash
+        self.hashes = []  # md5,sha1,sha256,*githash
         self.server = None
         self.etag = None
         self.mimetype = None
@@ -236,24 +238,24 @@ class singlefile(object):
 
         if '#' in url:
             ## TODO parse fragment for hash spec
-            [url,frag] = url.split('#',1)
-            url = url.split('#',1)[0]
+            [url, frag] = url.split('#', 1)
+            url = url.split('#', 1)[0]
         else:
             frag = None
 
         # check if any fixing is needed
-        url,frag = self.canonical_url(url,frag)
+        url, frag = self.canonical_url(url, frag)
 
         # save original url and extract possible filename (without parameters)
         if not self.orig_url:
             self.orig_url = url
         self.ext_url = url
 
-        parts = url.split('?',1)[0].split('/')
+        parts = url.split('?', 1)[0].split('/')
         if parts[-1] == '' or parts[-1][0] in '&?#' or parts[-1] == 'download':
-            hunk=parts[-2]
+            hunk = parts[-2]
         else:
-            hunk=parts[-1]
+            hunk = parts[-1]
 
         try:
             x = urllib.unquote(hunk)
@@ -267,38 +269,49 @@ class singlefile(object):
         # initiallly, cursor is at the start of the line
         # progress is expected to keep the cursor mid-line (right after stats)
         while True:
-            sys.stderr.write("\r-- %s %s %s  \r"%(self.progress,url,ANSI_OFF,))
+            sys.stderr.write("\r-- %s %s %s  \r" % (
+                self.progress,
+                url,
+                ANSI_OFF, ))
             all_args = curlopts[:]
             all_args.extend(self.ext_args)
             if self.refer:
-                all_args.extend(['-H','Referer: %s'%(self.refer),])
+                all_args.extend([
+                    '-H',
+                    'Referer: %s' % (self.refer),
+                ])
             all_args.append('--')
             all_args.append(url)
-            run_curl = subprocess.Popen(all_args,stdout=subprocess.PIPE)
+            run_curl = subprocess.Popen(all_args, stdout=subprocess.PIPE)
             #sys.stderr.write("\n"+' | '.join(all_args)) # XXX
 
             hdr = http_headerblock(run_curl.stdout)
             # if via proxy, there might be a first HTTP response about the connection
-            if None != hdr.lines and len(hdr.lines) == 0 and hdr.status_code == 200:
+            if None != hdr.lines and len(
+                    hdr.lines) == 0 and hdr.status_code == 200:
                 hdr = http_headerblock(run_curl.stdout)
 
             if hdr.status_code == 200:
-                sys.stderr.write("\r-- %s -- %s%s%s\n"%(url,ANSI_GREEN,str(hdr.status_code),ANSI_OFF)) # XXX
+                sys.stderr.write("\r-- %s -- %s%s%s\n" % (
+                    url, ANSI_GREEN, str(hdr.status_code), ANSI_OFF))  # XXX
             elif hdr.status_code > 305:
-                sys.stderr.write("\r-- %s -- %s%s%s\n"%(url,ANSI_RED,  str(hdr.status_code),ANSI_OFF)) # XXX
+                sys.stderr.write("\r-- %s -- %s%s%s\n" % (
+                    url, ANSI_RED, str(hdr.status_code), ANSI_OFF))  # XXX
             else:
-                sys.stderr.write("\r-- %s -- %s%s%s\n"%(url,ANSI_OFF,  str(hdr.status_code),ANSI_OFF)) # XXX
+                sys.stderr.write("\r-- %s -- %s%s%s\n" % (
+                    url, ANSI_OFF, str(hdr.status_code), ANSI_OFF))  # XXX
 
             if None == hdr.lines:
                 ## XXX kill first?
                 res = run_curl.wait()
                 if res == 35:
-                    self.error = "curl returned err %d, try without -k"%(res,)
+                    self.error = "curl returned err %d, try without -k" % (
+                        res, )
                 elif res == 60:
-                    self.error = "curl returned err %d, try with -k"%(res,)
+                    self.error = "curl returned err %d, try with -k" % (res, )
                 else:
-                    self.error = "curl returned err %d"%(res,)
-                sys.stderr.write("!! %s\n"%self.error)
+                    self.error = "curl returned err %d" % (res, )
+                sys.stderr.write("!! %s\n" % self.error)
                 break
 
             ## check if redirect
@@ -308,8 +321,8 @@ class singlefile(object):
                 run_curl.kill()
                 # TODO handle failure
                 loc = hdr.headers['LOCATION'][0]
-                self.refer,url = self.canonical_redirect(url,loc)
-                self.progress='redirected to'
+                self.refer, url = self.canonical_redirect(url, loc)
+                self.progress = 'redirected to'
                 # content not seen yet, restarting from new url
                 continue
 
@@ -326,15 +339,15 @@ class singlefile(object):
             try:
                 for l in hdr.get_all_headers('Content-Disposition'):
                     z = None
-                    if len(l)>3 and l[2].upper().strip()=='FILENAME':
+                    if len(l) > 3 and l[2].upper().strip() == 'FILENAME':
                         z = l[3].strip('\x27\x22')
-                    if len(l)>3 and l[2].upper().strip()=='FILENAME*':
+                    if len(l) > 3 and l[2].upper().strip() == 'FILENAME*':
                         arr = l[3].strip().split("'")
                         if len(arr) > 2:
                             z = arr[2].strip('\x27\x22\x09\x20')
                     if z:
                         self.filename = z
-            except (KeyError,TypeError):
+            except (KeyError, TypeError):
                 pass
 
             ## debugging to seek for new headers containing information
@@ -347,12 +360,13 @@ class singlefile(object):
                    (n[0:10] in ['X-GOOG-MET','X-GOOG-STO','X-GOOG-GEN','STRICT-TRA','X-GOOG-HAS','X-AMZ-REQU','X-AMZ-ID-2']) or \
                    (n[0:10] in ['CF-CACHE-S','X-XSS-PROT','X-CONTENT-','X-POWERED-','X-UA-COMPA','TIMING-ALL','X-GITHUB-R']) or \
                    (n[0:10] in ['X-FASTLY-R','X-GEO-BLOC','CONTENT-SE','X-SERVED-B','SOURCE-AGE','TRANSFER-E']) or \
-                   False: continue
+                   False:
+                    continue
                 if ('CONTENT-' in n) or \
                    ('LAST-' in n) or \
                    ('GOOG-' in n) or \
                    True:
-                   sys.stderr.write("%s %s\n"%(n,":".join(hdr.headers[n])))
+                    sys.stderr.write("%s %s\n" % (n, ":".join(hdr.headers[n])))
 
             ## http://download.system-cfg.com/f.php?h=2Z0Khs23&d=1
             if 'CONTENT-MD5' in hdr.headers:
@@ -366,70 +380,79 @@ class singlefile(object):
             ## x-goog-hash: md5=<base64 of binary>
             try:
                 for h in hdr.headers['X-GOOG-HASH']:
-                    (t,d)=h.split('=',1)
+                    (t, d) = h.split('=', 1)
                     if t.upper() == 'MD5':
                         dig = binascii.hexlify(base64.b64decode(d))
                         if self.expected_md5:
                             if self.expected_md5 != dig:
-                                sys.stderr.write("!! different MD5 digests to check\n")
+                                sys.stderr.write(
+                                    "!! different MD5 digests to check\n")
                         else:
                             self.expected_md5 = dig
-            except (KeyError,ValueError,TypeError):
+            except (KeyError, ValueError, TypeError):
                 pass
 
             try:
                 self.etag = hdr.get_single_header('Etag').strip("\x22\x27")
                 # hack - sometimes MD5 is part of the etag
-                m = re.match('([0-9a-z]{32})($|:)',self.etag)
+                m = re.match('([0-9a-z]{32})($|:)', self.etag)
                 if m:
                     self.expected_md5 = m.group(1)
-            except AttributeError: self.etag = None
+            except AttributeError:
+                self.etag = None
 
             ## more places to fetch data from
             ## content-description: Midnight Commander v4.7.3 (latest) sha256sum: 8777c184715e8b0a6301ac6da886cbce0fc4a3a6fdb833299c99bc6a23918f36
             ## < etag: "f3146e44ef1182467592e2f2f4665260"
 
             ## prepare hashing (git hash needs size beforehand)
-            hash_md5=hashlib.md5()
-            hash_sha1=hashlib.sha1()
-            hash_sha256=hashlib.sha256()
-            hash_githash=None
+            hash_md5 = hashlib.md5()
+            hash_sha1 = hashlib.sha1()
+            hash_sha256 = hashlib.sha256()
+            hash_githash = None
             if expected_size:
-                hash_githash=hashlib.sha1()
-                hash_githash.update(b"blob %d\0"%(expected_size))
+                hash_githash = hashlib.sha1()
+                hash_githash.update(b"blob %d\0" % (expected_size))
 
             # correct filename if needed
-            self.filename = self.canonical_filename(self.filename,url)
+            self.filename = self.canonical_filename(self.filename, url)
 
             ## start downloading to a temporary file
             if hdr.status_code != 200:
-                self.error = "HTTP status %d %s"%(hdr.status_code,hdr.reason)
-                sys.stderr.write("!! %s%s%s"%(ANSI_RED,self.error,ANSI_OFF))
-                f = tempfile.mkstemp(prefix='.err%d'%(hdr.status_code),dir='.')
+                self.error = "HTTP status %d %s" % (hdr.status_code,
+                                                    hdr.reason)
+                sys.stderr.write("!! %s%s%s" %
+                                 (ANSI_RED, self.error, ANSI_OFF))
+                f = tempfile.mkstemp(
+                    prefix='.err%d' % (hdr.status_code), dir='.')
             else:
                 self.error = "downloading"
-                f = tempfile.mkstemp(prefix='.dl_',dir='.')
-            self.tmpname = f[1]; f = os.fdopen(f[0],"w")
+                f = tempfile.mkstemp(prefix='.dl_', dir='.')
+            self.tmpname = f[1]
+            f = os.fdopen(f[0], "w")
 
             ## TODO progress
-            counted_size,i,x = 0,0,99
+            counted_size, i, x = 0, 0, 99
             shortened_url = self.orig_url[0:100]
             if self.filename not in shortened_url:
-                shortened_name = ' .../'+self.filename[-95:]
-                shortened_url = shortened_url[:120-len(shortened_name)]+shortened_name
+                shortened_name = ' .../' + self.filename[-95:]
+                shortened_url = shortened_url[:120 - len(shortened_name
+                                                         )] + shortened_name
 
-            sys.stderr.write("\r %15s %s%s \r"%('',shortened_url,ANSI_OFF))
+            sys.stderr.write("\r %15s %s%s \r" % ('', shortened_url, ANSI_OFF))
             for buf in run_curl.stdout:
                 f.write(buf)
                 counted_size = counted_size + len(buf)
                 z = time.gmtime().tm_sec
                 if x != z:
-                    i = i+1; x = z
+                    i = i + 1
+                    x = z
                     if expected_size:
-                        perc='%3d%%|%-9d'%(100.0*counted_size/expected_size,expected_size)
+                        perc = '%3d%%|%-9d' % (100.0 * counted_size /
+                                               expected_size, expected_size)
                     else:
-                        perc='%-14d'%(counted_size)
-                    sys.stderr.write("\r %s%s \r"%("_oOo"[i%4],perc))
+                        perc = '%-14d' % (counted_size)
+                    sys.stderr.write("\r %s%s \r" % ("_oOo" [i % 4], perc))
                 hash_md5.update(buf)
                 hash_sha1.update(buf)
                 hash_sha256.update(buf)
@@ -443,15 +466,15 @@ class singlefile(object):
             self.stamp = hdr.get_chrono_header('Last-Modified')
             try:
                 z = float(hdr.get_single_header('X-GOOG-Generation'))
-                if abs(z/1000000.0-self.stamp)<5:
-                    self.stamp = z/1000000.0
-            except (ValueError,TypeError):
+                if abs(z / 1000000.0 - self.stamp) < 5:
+                    self.stamp = z / 1000000.0
+            except (ValueError, TypeError):
                 pass
             self.stored = int(time.time())
             try:
                 ## save server's idea of the time if not too far off
                 d = hdr.get_chrono_header('Date')
-                if abs(d-self.stored)<7200:
+                if abs(d - self.stored) < 7200:
                     self.stored = d
             except:
                 pass
@@ -467,7 +490,8 @@ class singlefile(object):
                     ## success
                 elif expected_size is not None:
                     if counted_size < expected_size:
-                        self.error = "loaded only %d bytes of %d"%(counted_size,expected_size)
+                        self.error = "loaded only %d bytes of %d" % (
+                            counted_size, expected_size)
                         os.remove(self.tmpname)
                         self.tmpname = None
                         break
@@ -475,7 +499,8 @@ class singlefile(object):
                         # XXX hack (help force)
                         self.error = None
                         self.filesize = counted_size
-                        print "\n?? loaded %d of %d\n"%(counted_size,expected_size)
+                        print "\n?? loaded %d of %d\n" % (counted_size,
+                                                          expected_size)
             else:
                 # XXX did remove, but may need for redirect parsing
                 break
@@ -486,9 +511,9 @@ class singlefile(object):
             try:
                 for l in hdr.get_all_headers('Content-Type'):
                     self.mimetype = l[0].strip()
-                    if len(l)>3 and l[2].upper().strip() == 'CHARSET':
+                    if len(l) > 3 and l[2].upper().strip() == 'CHARSET':
                         self.charset = l[3].strip()
-            except (TypeError,IndexError):
+            except (TypeError, IndexError):
                 self.charset = None
 
             self.encoding = hdr.get_single_header('Content-Encoding')
@@ -496,10 +521,14 @@ class singlefile(object):
             if z and self.encoding is None:
                 self.encoding = z
 
-            self.hashes=[hash_md5.hexdigest(),hash_sha1.hexdigest(),hash_sha256.hexdigest(),None]
-            if hash_githash: self.hashes[3]=hash_githash.hexdigest()
+            self.hashes = [
+                hash_md5.hexdigest(), hash_sha1.hexdigest(),
+                hash_sha256.hexdigest(), None
+            ]
+            if hash_githash: self.hashes[3] = hash_githash.hexdigest()
 
-            self.refer,url = self.content_redirect(url,self.tmpname,self.mimetype)
+            self.refer, url = self.content_redirect(url, self.tmpname,
+                                                    self.mimetype)
             if url is None:
                 break
             # else start again
@@ -507,30 +536,31 @@ class singlefile(object):
         return None
 
     def canonical_url(self, url, frag):
-        return url,frag
+        return url, frag
 
     def canonical_redirect(self, url, loc):
         orig_url = url
         # unsure if correct
         loc = loc[:]
-        if ' ' in loc: loc = loc.replace(' ','%20')
-        url = urlparse.urljoin(url,loc)
-        return orig_url,url
+        if ' ' in loc: loc = loc.replace(' ', '%20')
+        url = urlparse.urljoin(url, loc)
+        return orig_url, url
 
     def canonical_filename(self, filename, url):
         if filename[-4:].upper() == '.PDF':
-            return filename[:-4]+'.pdf'
+            return filename[:-4] + '.pdf'
         x = url.split('/')[-1]
         if x[-4:].upper() == '.PDF':
-            return x[:-4]+'.pdf'
+            return x[:-4] + '.pdf'
         return filename
 
     def content_redirect(self, url, tmpname, mimetype):
-        return None,None
+        return None, None
 
     def savefile(self, filename=None, broken=False):
         if self.error and not broken:
-            sys.stderr.write("!! cannot save, %s%s%s\n"%(ANSI_RED,self.error,ANSI_OFF))
+            sys.stderr.write("!! cannot save, %s%s%s\n" %
+                             (ANSI_RED, self.error, ANSI_OFF))
             return None
         if not self.tmpname:
             return None
@@ -539,7 +569,7 @@ class singlefile(object):
         try:
             # XXX even if duplicate, try to keep it recorded
             os.stat(filename)
-            filename="%s.%s"%(filename,os.getpid())
+            filename = "%s.%s" % (filename, os.getpid())
             os.stat(filename)
             return None
         except OSError:
@@ -550,20 +580,23 @@ class singlefile(object):
             sys.stderr.write("!! not saving, .php extension\n")
             return None
         if self.mimetype is None or self.mimetype.upper() == 'TEXT/HTML':
-            sys.stderr.write("!! not saving, MIME type is %s%s\n"%(self.mimetype,ANSI_OFF))
+            sys.stderr.write("!! not saving, MIME type is %s%s\n" %
+                             (self.mimetype, ANSI_OFF))
             return None
         if self.mimetype.upper()[0:5] == 'TEXT/':
-            if self.filename.split('.')[-1].upper() not in ['SIG','ASC','TXT','C','ASM']:
-                sys.stderr.write("!! not saving, MIME type is %s%s\n"%(self.mimetype,ANSI_OFF))
+            if self.filename.split(
+                    '.')[-1].upper() not in ['SIG', 'ASC', 'TXT', 'C', 'ASM']:
+                sys.stderr.write("!! not saving, MIME type is %s%s\n" %
+                                 (self.mimetype, ANSI_OFF))
                 return None
 
         # postponing these - the temp file won't be seen as proper
         if self.stamp:
-            os.utime(self.tmpname,(self.stamp,self.stamp))
-        os.chmod(self.tmpname,0644)
+            os.utime(self.tmpname, (self.stamp, self.stamp))
+        os.chmod(self.tmpname, 0644)
 
         self.filename = filename
-        os.rename(self.tmpname,filename)
+        os.rename(self.tmpname, filename)
         self.tmpname = None
         bad = []
         good = []
@@ -578,12 +611,13 @@ class singlefile(object):
         report_color = ANSI_OFF
         if len(bad):
             report_color = ANSI_RED
-            ok = 'BAD '+' '.join(bad)
+            ok = 'BAD ' + ' '.join(bad)
         else:
             report_color = ANSI_GREEN
             good.append('OK')
             ok = ' '.join(good)
-        sys.stderr.write("\r%s %s%s%s (%d)\n"%(filename,report_color,ok,ANSI_OFF,self.filesize))
+        sys.stderr.write("\r%s %s%s%s (%d)\n" %
+                         (filename, report_color, ok, ANSI_OFF, self.filesize))
 
         ## TODO avoid if duplicate
         ## 1/3 write .meta as text with some fields
@@ -591,19 +625,19 @@ class singlefile(object):
 
         ## don't store extra precision if not present
         if self.stamp:
-            safestamp = '%f'%(self.stamp,)
+            safestamp = '%f' % (self.stamp, )
         else:
             safestamp = self.stamp
         try:
-            (i,frac)=safestamp.split('.',1)
-            if int(frac)==0:
-                safestamp=int(i)
+            (i, frac) = safestamp.split('.', 1)
+            if int(frac) == 0:
+                safestamp = int(i)
             else:
-                safestamp=float(safestamp.rstrip('0'))
-        except (ValueError,AttributeError):
+                safestamp = float(safestamp.rstrip('0'))
+        except (ValueError, AttributeError):
             pass
 
-        with open('.meta','a') as f:
+        with open('.meta', 'a') as f:
             f.write("\t".join([str(i) if i else '?' for i in \
               [self.filename,self.filesize,safestamp,self.hashes[0],self.mimetype,self.encoding,self.orig_url,self.stored,self.server,self.etag]])+"\n")
             f.close()
@@ -620,15 +654,20 @@ class singlefile(object):
         'encoding':self.encoding,'url':self.orig_url,\
         'stored':self.stored,'server':self.server,'etag':self.etag}
         try:
-            with open ('%s/%04d-%s.meta'%(os.environ[FL],year,platform.node()[0:6]),"a") as flmeta:
-                flmeta.write("%s\n"%(json.dumps(d,cls=MetaFLJSONEncoder)))
+            with open('%s/%04d-%s.meta' %
+                      (os.environ[FL], year,
+                       platform.node()[0:6]), "a") as flmeta:
+                flmeta.write("%s\n" % (json.dumps(d, cls=MetaFLJSONEncoder)))
                 flmeta.close()
         except:
             pass
 
         ## 3/3 update database
-        try: conn = sqlite3.connect(os.environ['FLDB']); cur = conn.cursor()
-        except: conn, cur = None,None
+        try:
+            conn = sqlite3.connect(os.environ['FLDB'])
+            cur = conn.cursor()
+        except:
+            conn, cur = None, None
 
         if conn:
             conn.execute("""
@@ -638,24 +677,27 @@ class singlefile(object):
             (os.getcwd(),self.filename,self.filesize,self.stamp,\
             self.hashes[0],self.hashes[1],self.hashes[2],self.hashes[3],\
             self.mimetype,self.charset,self.encoding,self.orig_url,\
-            self.stored,self.server,self.etag));
+            self.stored,self.server,self.etag))
             conn.commit()
             conn.close()
 
     def __del__(self):
         try:
             if self.tmpname:
-                os.remove(self.tmpname);
+                os.remove(self.tmpname)
                 self.tmpname = None
-        except OSError: pass
+        except OSError:
+            pass
+
 
 ###########################################################################
 ###########################################################################
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Wrapper for curl to keep HTTP metadata',prog='metacurl')
-## grep E\} src/tool_getparam.c|sed 's/[{} "]//g'
+    parser = argparse.ArgumentParser(
+        description='Wrapper for curl to keep HTTP metadata', prog='metacurl')
+    ## grep E\} src/tool_getparam.c|sed 's/[{} "]//g'
     # vvv
     ## Oa,remote-name-all,FALSE,
     ## r,range,TRUE,
@@ -668,35 +710,37 @@ def main():
     # H,header,TRUE,
     # Hp,proxy-header,TRUE,
     # D,dump-header,TRUE,
-    parser.add_argument('-i','--include',action='store_true')
-    parser.add_argument('--remote-name-all',action='store_true')
-    parser.add_argument('-b','--cookie')
-    parser.add_argument('-c','--cookie-jar')
-    parser.add_argument('-v','--verbose',action='store_true')
-    parser.add_argument('-N','--no-buffer',action='store_true')
-    parser.add_argument('-s','--silent',action='store_true')
-    parser.add_argument('-r','--range')
-    parser.add_argument('-k','--insecure',action='store_true')
-    parser.add_argument('-K','--config')
-    parser.add_argument('-H','--header',action='append')
+    parser.add_argument('-i', '--include', action='store_true')
+    parser.add_argument('--remote-name-all', action='store_true')
+    parser.add_argument('-b', '--cookie')
+    parser.add_argument('-c', '--cookie-jar')
+    parser.add_argument('-v', '--verbose', action='store_true')
+    parser.add_argument('-N', '--no-buffer', action='store_true')
+    parser.add_argument('-s', '--silent', action='store_true')
+    parser.add_argument('-r', '--range')
+    parser.add_argument('-k', '--insecure', action='store_true')
+    parser.add_argument('-K', '--config')
+    parser.add_argument('-H', '--header', action='append')
     parser.add_argument('--data-binary')
     parser.add_argument('--data')
-    parser.add_argument('--proxy-header',action='store_true')
-    parser.add_argument('--compressed',action='store_true')
+    parser.add_argument('--proxy-header', action='store_true')
+    parser.add_argument('--compressed', action='store_true')
     parser.add_argument('--socks5-hostname')
-    parser.add_argument('-D','--dump-header')
+    parser.add_argument('-D', '--dump-header')
     # ^^^
     # --2.0 ignored for compatibility
     # -s should be always there (silent)
     # -o should not be present (output)
-    parser.add_argument('--2.0',action='store_const',const=False,default=False)
-    parser.add_argument('--1.0',action='store_const',const=False,default=False)
+    parser.add_argument(
+        '--2.0', action='store_const', const=False, default=False)
+    parser.add_argument(
+        '--1.0', action='store_const', const=False, default=False)
     # debug?
-    parser.add_argument('URL',nargs='+')
+    parser.add_argument('URL', nargs='+')
     args = parser.parse_args()
 
     # XXX path for curl
-    curl_args=["curl"]
+    curl_args = ["curl"]
 
     ## default arguments
     # User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:50.0) Gecko/20100101 Firefox/50.0
@@ -705,10 +749,12 @@ def main():
         'ACCEPT-ENCODING': 'gzip, deflate',
     }
     # --silent and --include needs to be there always
-    curl_args.extend(['-s','-i'])
+    curl_args.extend(['-s', '-i'])
     # try to add proxying unconditionally
-    try: curl_args.extend(['--socks5-hostname',os.environ['SOCKS5']])
-    except: pass
+    try:
+        curl_args.extend(['--socks5-hostname', os.environ['SOCKS5']])
+    except:
+        pass
     # add those headers if not present
     add_headers = need_headers.copy()
     try:
@@ -716,28 +762,27 @@ def main():
         if headers is None:
             raise TypeError
         for h in headers:
-            k=h.split(':',1)
-            k=k[0].upper().strip('\x20\x09')
+            k = h.split(':', 1)
+            k = k[0].upper().strip('\x20\x09')
             if k in add_headers:
                 del add_headers[k]
     except:
-        args.__dict__['header']=[]
+        args.__dict__['header'] = []
 
-    for k,v in add_headers.iteritems():
+    for k, v in add_headers.iteritems():
         args.__dict__['header'].append(v)
 
-    for i,v in args.__dict__.items():
-        if isinstance(v,list) and i in ['header',]:
+    for i, v in args.__dict__.items():
+        if isinstance(v, list) and i in ['header', ]:
             for n in v:
-                curl_args.extend(['--%s'%(i),'%s'%(n,)])
-        elif i in ['1_0','2_0','dump_header','silent','include','URL']:
+                curl_args.extend(['--%s' % (i), '%s' % (n, )])
+        elif i in ['1_0', '2_0', 'dump_header', 'silent', 'include', 'URL']:
             # silent and include will be added always
             pass
-        elif v==True:
-            curl_args.append('--%s'%(i.replace('_','-'),))
+        elif v == True:
+            curl_args.append('--%s' % (i.replace('_', '-'), ))
         elif v:
-            curl_args.extend(['--%s'%(i.replace('_','-')),'%s'%(v,)])
-
+            curl_args.extend(['--%s' % (i.replace('_', '-')), '%s' % (v, )])
 
     for url in args.URL:
         savedfile = singlefile(url,curl_args)
