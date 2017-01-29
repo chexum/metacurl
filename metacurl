@@ -530,6 +530,9 @@ class singlefile(object):
             pass
 
         # XXX try to match with constraints instead?
+        if self.filename[-4:].upper() == '.PHP':
+            sys.stderr.write("!! not saving, .php extension\n")
+            return None
         if self.mimetype is None or self.mimetype.upper() == 'TEXT/HTML':
             sys.stderr.write("!! not saving, MIME type is %s%s\n"%(self.mimetype,ANSI_OFF))
             return None
