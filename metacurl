@@ -368,6 +368,10 @@ class singlefile(object):
                    True:
                     sys.stderr.write("%s %s\n" % (n, ":".join(hdr.headers[n])))
 
+            ## -- http://central.maven.org/maven2/com/lowagie/itext/2.1.7/itext-2.1.7.jar -- 200
+            # X-CHECKSUM-SHA1 892bfb3e97074a61123b3b2d7caa2db112750864
+            # X-CHECKSUM-MD5 7587a618197a065eac4a453d173d4ed6
+
             ## http://download.system-cfg.com/f.php?h=2Z0Khs23&d=1
             if 'CONTENT-MD5' in hdr.headers:
                 d = hdr.get_single_header('Content-MD5')
