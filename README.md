@@ -10,6 +10,7 @@ makes sure all of the file is transferred,
 computes several hashes during the transfer (and verifies them if the server provides a way).
 
 It also records these metadata for later:
+
 1. in a file in $FLMETADIR, in JSON format
 2. in an sqlite database named $FLDB
 3. in a plaintext file in the current directory called .meta
