@@ -232,6 +232,7 @@ class singlefile(object):
         self.encoding = None
         self.tmpname = None
         self.expected_md5 = None
+        self.expected_sha1 = None
         self.refer = None
         self.ext_url = None
         self.ext_args = []
@@ -371,6 +372,21 @@ class singlefile(object):
             ## -- http://central.maven.org/maven2/com/lowagie/itext/2.1.7/itext-2.1.7.jar -- 200
             # X-CHECKSUM-SHA1 892bfb3e97074a61123b3b2d7caa2db112750864
             # X-CHECKSUM-MD5 7587a618197a065eac4a453d173d4ed6
+            if 'X-CHECKSUM-SHA1' in hdr.headers:
+                d = hdr.get_single_header('X-Checksum-SHA1')
+                if self.expected_sha1:
+                    if self.expected_sha1 != d:
+                        sys.stderr.write("!! different SHA1 digests to check\n")
+                else:
+                    self.expected_sha1 = d
+
+            if 'X-CHECKSUM-MD5' in hdr.headers:
+                d = hdr.get_single_header('X-Checksum-MD5')
+                if self.expected_md5:
+                    if self.expected_md5 != d:
+                        sys.stderr.write("!! different MD5 digests to check\n")
+                else:
+                    self.expected_md5 = d
 
             ## http://download.system-cfg.com/f.php?h=2Z0Khs23&d=1
             if 'CONTENT-MD5' in hdr.headers:
@@ -611,6 +627,11 @@ class singlefile(object):
                 good.append('MD5')
             else:
                 bad.append('MD5')
+        if self.expected_sha1:
+            if self.expected_sha1 == self.hashes[1]:
+                good.append('SHA1')
+            else:
+                bad.append('SHA1')
         # report digest verficiation
         report_color = ANSI_OFF
         if len(bad):
