@@ -247,6 +247,13 @@ class singlefile(object):
         # check if any fixing is needed
         url, frag = self.canonical_url(url, frag)
 
+        m = re.match('(md5|sha1)=([A-Fa-f0-9]+)',frag,re.I)
+        if m:
+            if m.group(1).upper() == 'MD5':
+                self.expected_md5 = m.group(2)
+            elif m.group(1).upper() == 'SHA1':
+                self.expected_sha1 = m.group(2)
+
         # save original url and extract possible filename (without parameters)
         if not self.orig_url:
             self.orig_url = url
