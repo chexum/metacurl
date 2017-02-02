@@ -233,6 +233,7 @@ class singlefile(object):
         self.tmpname = None
         self.expected_md5 = None
         self.expected_sha1 = None
+        self.expected_sha256 = None
         self.refer = None
         self.ext_url = None
         self.ext_args = []
@@ -247,12 +248,14 @@ class singlefile(object):
         # check if any fixing is needed
         url, frag = self.canonical_url(url, frag)
 
-        m = re.match('(md5|sha1)=([A-Fa-f0-9]+)',frag,re.I)
+        m = re.match('(md5|sha1|sha256)=([A-Fa-f0-9]+)',frag,re.I)
         if m:
             if m.group(1).upper() == 'MD5':
                 self.expected_md5 = m.group(2)
             elif m.group(1).upper() == 'SHA1':
                 self.expected_sha1 = m.group(2)
+            elif m.group(1).upper() == 'SHA256':
+                self.expected_sha256 = m.group(2)
 
         # save original url and extract possible filename (without parameters)
         if not self.orig_url:
@@ -429,6 +432,7 @@ class singlefile(object):
                 self.etag = None
 
             ## more places to fetch data from
+            ## XXX: sha256
             ## content-description: Midnight Commander v4.7.3 (latest) sha256sum: 8777c184715e8b0a6301ac6da886cbce0fc4a3a6fdb833299c99bc6a23918f36
             ## < etag: "f3146e44ef1182467592e2f2f4665260"
 
@@ -639,6 +643,11 @@ class singlefile(object):
                 good.append('SHA1')
             else:
                 bad.append('SHA1')
+        if self.expected_sha256:
+            if self.expected_sha256 == self.hashes[1]:
+                good.append('SHA256')
+            else:
+                bad.append('SHA256')
         # report digest verficiation
         report_color = ANSI_OFF
         if len(bad):
