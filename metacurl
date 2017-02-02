@@ -644,7 +644,7 @@ class singlefile(object):
             else:
                 bad.append('SHA1')
         if self.expected_sha256:
-            if self.expected_sha256 == self.hashes[1]:
+            if self.expected_sha256 == self.hashes[2]:
                 good.append('SHA256')
             else:
                 bad.append('SHA256')
