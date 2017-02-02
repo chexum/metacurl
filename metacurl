@@ -243,12 +243,12 @@ class singlefile(object):
             [url, frag] = url.split('#', 1)
             url = url.split('#', 1)[0]
         else:
-            frag = None
+            frag = ''
 
         # check if any fixing is needed
         url, frag = self.canonical_url(url, frag)
 
-        m = re.match('(md5|sha1|sha256)=([A-Fa-f0-9]+)',frag,re.I)
+        m = re.search('(md5|sha1|sha256)=([A-Fa-f0-9]+)',frag,re.I)
         if m:
             if m.group(1).upper() == 'MD5':
                 self.expected_md5 = m.group(2)
