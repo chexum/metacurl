@@ -428,7 +428,7 @@ class singlefile(object):
                 m = re.match('([0-9a-z]{32})($|:)', self.etag)
                 if m:
                     self.expected_md5 = m.group(1)
-            except AttributeError:
+            except (AttributeError,TypeError):
                 self.etag = None
 
             ## more places to fetch data from
