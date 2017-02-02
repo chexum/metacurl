@@ -431,11 +431,6 @@ class singlefile(object):
             except (AttributeError,TypeError):
                 self.etag = None
 
-            ## more places to fetch data from
-            ## XXX: sha256
-            ## content-description: Midnight Commander v4.7.3 (latest) sha256sum: 8777c184715e8b0a6301ac6da886cbce0fc4a3a6fdb833299c99bc6a23918f36
-            ## < etag: "f3146e44ef1182467592e2f2f4665260"
-
             ## prepare hashing (git hash needs size beforehand)
             hash_md5 = hashlib.md5()
             hash_sha1 = hashlib.sha1()
