@@ -322,7 +322,6 @@ class singlefile(object):
                     self.error = "curl returned err %d, try with -k" % (res, )
                 else:
                     self.error = "curl returned err %d" % (res, )
-                sys.stderr.write("!! %s\n" % self.error)
                 break
 
             ## check if redirect
