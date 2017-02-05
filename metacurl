@@ -610,7 +610,7 @@ class singlefile(object):
             return None
         if self.mimetype.upper()[0:5] == 'TEXT/':
             if self.filename.split(
-                    '.')[-1].upper() not in ['SIG', 'ASC', 'TXT', 'C', 'ASM']:
+                    '.')[-1].upper() not in ['SIG', 'SIGN', 'PUB', 'ASC', 'TXT', 'C', 'ASM']:
                 sys.stderr.write("!! not saving, MIME type is %s%s\n" %
                                  (self.mimetype, ANSI_OFF))
                 return None
