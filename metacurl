@@ -465,6 +465,8 @@ class singlefile(object):
                                                          )] + shortened_name
 
             sys.stderr.write("\r %15s %s%s \r" % ('', shortened_url, ANSI_OFF))
+            ## in 2.x it's not possible to switch to non-line delimited reads
+            ## XXX try to find a way to make the transfer efficient
             for buf in run_curl.stdout:
                 f.write(buf)
                 counted_size = counted_size + len(buf)
