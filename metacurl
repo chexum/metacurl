@@ -248,7 +248,7 @@ class singlefile(object):
         # check if any fixing is needed
         url, frag = self.canonical_url(url, frag)
 
-        m = re.search('(md5|sha1|sha256)=([A-Fa-f0-9]+)',frag,re.I)
+        m = re.search('(md5|sha1|sha256)=([A-Fa-f0-9]+)', frag, re.I)
         if m:
             if m.group(1).upper() == 'MD5':
                 self.expected_md5 = m.group(2)
@@ -385,7 +385,8 @@ class singlefile(object):
                 d = hdr.get_single_header('X-Checksum-SHA1')
                 if self.expected_sha1:
                     if self.expected_sha1 != d:
-                        sys.stderr.write("!! different SHA1 digests to check\n")
+                        sys.stderr.write(
+                            "!! different SHA1 digests to check\n")
                 else:
                     self.expected_sha1 = d
 
@@ -427,7 +428,7 @@ class singlefile(object):
                 m = re.match('([0-9a-z]{32})($|:)', self.etag)
                 if m and len(m.group(1)) == 32:
                     self.expected_md5 = m.group(1).lower()
-            except (AttributeError,TypeError):
+            except (AttributeError, TypeError):
                 self.etag = None
 
             ## prepare hashing (git hash needs size beforehand)
@@ -611,8 +612,8 @@ class singlefile(object):
                              (self.mimetype, ANSI_OFF))
             return None
         if self.mimetype.upper()[0:5] == 'TEXT/':
-            if self.filename.split(
-                    '.')[-1].upper() not in ['SIG', 'SIGN', 'PUB', 'ASC', 'TXT', 'C', 'ASM']:
+            if self.filename.split('.')[-1].upper(
+            ) not in ['SIG', 'SIGN', 'PUB', 'ASC', 'TXT', 'C', 'ASM']:
                 sys.stderr.write("!! not saving, MIME type is %s%s\n" %
                                  (self.mimetype, ANSI_OFF))
                 return None
@@ -691,9 +692,9 @@ class singlefile(object):
         'encoding':self.encoding,'url':self.orig_url,\
         'stored':self.stored,'server':self.server,'etag':self.etag}
         try:
-            with open('%s/%04d-%s.meta' %
-                      (os.environ[FL], year,
-                       platform.node()[0:6]), "a") as flmeta:
+            with open('%s/%04d-%s.meta' % (os.environ[FL], year,
+                                           platform.node()[0:6]),
+                      "a") as flmeta:
                 flmeta.write("%s\n" % (json.dumps(d, cls=MetaFLJSONEncoder)))
                 flmeta.close()
         except:
