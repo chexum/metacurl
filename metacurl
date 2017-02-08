@@ -774,12 +774,12 @@ def main():
         '--2.0', action='store_const', const=False, default=False)
     parser.add_argument(
         '--1.0', action='store_const', const=False, default=False)
+    parser.add_argument('--curl-command', default='curl')
     # debug?
     parser.add_argument('URL', nargs='+')
     args = parser.parse_args()
 
-    # XXX path for curl
-    curl_args = ["curl"]
+    curl_args = [args.curl_command]
 
     ## default arguments
     # User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:50.0) Gecko/20100101 Firefox/50.0
@@ -815,7 +815,10 @@ def main():
         if isinstance(v, list) and i in ['header', ]:
             for n in v:
                 curl_args.extend(['--%s' % (i), '%s' % (n, )])
-        elif i in ['1_0', '2_0', 'dump_header', 'silent', 'include', 'URL']:
+        elif i in [
+                '1_0', '2_0', 'dump_header', 'silent', 'include',
+                'curl_command', 'URL'
+        ]:
             # silent and include will be added always
             pass
         elif v == True:
