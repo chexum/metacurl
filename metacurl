@@ -425,7 +425,7 @@ class singlefile(object):
             try:
                 self.etag = hdr.get_single_header('Etag').strip("\x22\x27")
                 # hack - sometimes MD5 is part of the etag
-                m = re.match('([0-9a-z]{32})($|:)', self.etag)
+                m = re.match('([0-9a-fA-F]{32})($|:)', self.etag)
                 if m and len(m.group(1)) == 32:
                     self.expected_md5 = m.group(1).lower()
             except (AttributeError, TypeError):
