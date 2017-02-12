@@ -5,3 +5,5 @@ robots.txt
 .status.*
 .build
 test
+tests/*.out*
+tests/*.tm[p1]

@@ -585,8 +585,8 @@ class singlefile(object):
     def content_redirect(self, url, tmpname, mimetype):
         return None, None
 
-    def savefile(self, filename=None, broken=False):
-        if self.error and not broken:
+    def savefile(self, filename=None, debug=False):
+        if self.error and not debug:
             sys.stderr.write("!! cannot save, %s%s%s\n" %
                              (ANSI_RED, self.error, ANSI_OFF))
             return None
@@ -611,7 +611,7 @@ class singlefile(object):
             sys.stderr.write("!! not saving, MIME type is %s%s\n" %
                              (self.mimetype, ANSI_OFF))
             return None
-        if self.mimetype.upper()[0:5] == 'TEXT/':
+        if self.mimetype.upper()[0:5] == 'TEXT/': # and not debug:
             if self.filename.split('.')[-1].upper(
             ) not in ['SIG', 'SIGN', 'PUB', 'ASC', 'TXT', 'C', 'ASM']:
                 sys.stderr.write("!! not saving, MIME type is %s%s\n" %
@@ -699,6 +699,8 @@ class singlefile(object):
                 flmeta.close()
         except:
             pass
+        if debug:
+            sys.stderr.write("%s\n" % (json.dumps(d, cls=MetaFLJSONEncoder)))
 
         ## 3/3 update database
         try:
@@ -775,6 +777,7 @@ def main():
     parser.add_argument(
         '--1.0', action='store_const', const=False, default=False)
     parser.add_argument('--curl-command', default='curl')
+    parser.add_argument('--debug-summary', action='store_true')
     # debug?
     parser.add_argument('URL', nargs='+')
     args = parser.parse_args()
@@ -817,7 +820,7 @@ def main():
                 curl_args.extend(['--%s' % (i), '%s' % (n, )])
         elif i in [
                 '1_0', '2_0', 'dump_header', 'silent', 'include',
-                'curl_command', 'URL'
+                'curl_command', 'debug_summary', 'URL'
         ]:
             # silent and include will be added always
             pass
@@ -828,7 +831,7 @@ def main():
 
     for url in args.URL:
         savedfile = singlefile(url,curl_args)
-        savedfile.savefile()
+        savedfile.savefile(debug=args.debug_summary)
 
 
 ###########################################################################
