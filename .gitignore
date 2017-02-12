@@ -1,7 +1,7 @@
 *~
 .DS_Store
 robots.txt
-.*.meta
+.meta
 .status.*
 .build
 test
