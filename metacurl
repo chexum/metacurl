@@ -218,7 +218,7 @@ class singlefile(object):
     Retrieve a single file by using curl and inspecting the output
     """
 
-    def __init__(self, url, curlopts):
+    def __init__(self, url, curlopts, debug=False):
         self.error = "not initialized"
         self.progress = "downloading"
         self.orig_url = ""
@@ -302,9 +302,10 @@ class singlefile(object):
                     hdr.lines) == 0 and hdr.status_code == 200:
                 hdr = http_headerblock(run_curl.stdout)
 
-            if hdr.status_code == 200:
-                sys.stderr.write("\r-- %s -- %s%s%s\n" % (
-                    url, ANSI_GREEN, str(hdr.status_code), ANSI_OFF))  # XXX
+            elif hdr.status_code == 200:
+                if not debug:
+                    sys.stderr.write("\r-- %s -- %s%s%s\n" % (
+                        url, ANSI_GREEN, str(hdr.status_code), ANSI_OFF))  # XXX
             elif hdr.status_code > 305:
                 sys.stderr.write("\r-- %s -- %s%s%s\n" % (
                     url, ANSI_RED, str(hdr.status_code), ANSI_OFF))  # XXX
@@ -830,7 +831,7 @@ def main():
             curl_args.extend(['--%s' % (i.replace('_', '-')), '%s' % (v, )])
 
     for url in args.URL:
-        savedfile = singlefile(url,curl_args)
+        savedfile = singlefile(url,curl_args, args.debug_summary)
         savedfile.savefile(debug=args.debug_summary)
 
 
