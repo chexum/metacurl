@@ -25,7 +25,7 @@ N_ALL = [
 ANSI_OFF = b'\033[m\033[K'
 ANSI_RED = b'\033[31m'
 ANSI_GREEN = b'\033[32m'
-
+CR = b'\r'
 
 class MetaFLJSONEncoder(json.JSONEncoder):
     def encode(self, o):
@@ -238,6 +238,12 @@ class singlefile(object):
         self.ext_url = None
         self.ext_args = []
 
+        if debug:
+            ANSI_OFF = ''
+            ANSI_RED = ''
+            ANSI_GREEN = ''
+            CR = '\n'
+
         if '#' in url:
             ## TODO parse fragment for hash spec
             [url, frag] = url.split('#', 1)
@@ -280,7 +286,7 @@ class singlefile(object):
         # initiallly, cursor is at the start of the line
         # progress is expected to keep the cursor mid-line (right after stats)
         while True:
-            sys.stderr.write("\r-- %s %s %s  \r" % (
+            sys.stderr.write(("-- %s %s %s\n" if debug else "\r-- %s %s %s  \r") % (
                 self.progress,
                 url,
                 ANSI_OFF, ))
@@ -465,15 +471,15 @@ class singlefile(object):
                 shortened_name = ' .../' + self.filename[-95:]
                 shortened_url = shortened_url[:120 - len(shortened_name
                                                          )] + shortened_name
-
-            sys.stderr.write("\r %15s %s%s \r" % ('', shortened_url, ANSI_OFF))
+            if not debug:
+                sys.stderr.write("\r %15s %s%s \r" % ('', shortened_url, ANSI_OFF))
             ## in 2.x it's not possible to switch to non-line delimited reads
             ## XXX try to find a way to make the transfer efficient
             for buf in run_curl.stdout:
                 f.write(buf)
                 counted_size = counted_size + len(buf)
                 z = time.gmtime().tm_sec
-                if x != z:
+                if x != z and not debug:
                     i = i + 1
                     x = z
                     if expected_size:
@@ -528,8 +534,8 @@ class singlefile(object):
                         # XXX hack (help force)
                         self.error = None
                         self.filesize = counted_size
-                        print "\n?? loaded %d of %d\n" % (counted_size,
-                                                          expected_size)
+                        sys.stderr.write("?? read more (%d of %d)\n" % (counted_size,
+                                                          expected_size))
             else:
                 # XXX did remove, but may need for redirect parsing
                 break
@@ -587,6 +593,12 @@ class singlefile(object):
         return None, None
 
     def savefile(self, filename=None, debug=False):
+        if debug:
+            ANSI_OFF = ''
+            ANSI_RED = ''
+            ANSI_GREEN = ''
+            CR = '\n'
+
         if self.error and not debug:
             sys.stderr.write("!! cannot save, %s%s%s\n" %
                              (ANSI_RED, self.error, ANSI_OFF))
@@ -655,8 +667,8 @@ class singlefile(object):
             report_color = ANSI_GREEN
             good.append('OK')
             ok = ' '.join(good)
-        sys.stderr.write("\r%s %s%s%s (%d)\n" %
-                         (filename, report_color, ok, ANSI_OFF, self.filesize))
+        sys.stderr.write("%s%s %s%s%s (%d)\n" %
+                         (CR, filename, report_color, ok, ANSI_OFF, self.filesize))
 
         ## TODO avoid if duplicate
         ## 1/3 write .meta as text with some fields
