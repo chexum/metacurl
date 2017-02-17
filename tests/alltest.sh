@@ -13,6 +13,7 @@ for i in [0-9]*txt; do
   rm -f ./$fnm
   ../metacurl --debug-summary --curl-command ./localfetch.sh $fnm 2>./$tm1
   sed -E 's/(.stored.):[0-9]+/\1:null/g' <./$tm1 >./$tm2
+  rm -f ./$tm1
   diff -u $exp $tm2 >$fnm
   if [ "$?" = "0" ]; then
     echo $b OK
