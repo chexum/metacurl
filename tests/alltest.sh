@@ -10,7 +10,7 @@ for i in [0-9]*txt; do
   exp=$b.err
   tm1=$b.tm1
   tm2=$b.tmp
-  rm -f ./$fnm
+  rm -f ./$fnm ./.dl_*
   ../metacurl --debug-summary --curl-command ./localfetch.sh $fnm 2>./$tm1
   sed -E 's/(.stored.):[0-9]+/\1:null/g' <./$tm1 >./$tm2
   rm -f ./$tm1
