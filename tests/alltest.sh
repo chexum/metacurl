@@ -4,6 +4,10 @@ allgood=0
 
 # XXX extra per-test options
 
+# make sure we don't leave garbage around
+unset FLDB
+unset FLMETADIR
+
 for i in [0-9]*txt; do
   b=${i%.txt}
   fnm=$b.out
