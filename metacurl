@@ -624,11 +624,11 @@ class singlefile(object):
             sys.stderr.write("!! not saving, MIME type is %s%s\n" %
                              (self.mimetype, ANSI_OFF))
             return None
-        if self.mimetype.upper()[0:5] == 'TEXT/': # and not debug:
+        if self.mimetype.upper()[0:5] == 'TEXT/':  # and not debug:
             if self.filename.split('.')[-1].upper(
             ) not in ['SIG', 'SIGN', 'PUB', 'ASC', 'TXT', 'C', 'ASM']:
-                sys.stderr.write("!! not saving, MIME type is %s%s\n" %
-                                 (self.mimetype, ANSI_OFF))
+                sys.stderr.write("!! not saving, MIME type is %s (%s) %s\n" %
+                                 (self.mimetype, self.filename, ANSI_OFF))
                 return None
 
         # postponing these - the temp file won't be seen as proper
