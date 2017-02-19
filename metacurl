@@ -286,10 +286,11 @@ class singlefile(object):
         # initiallly, cursor is at the start of the line
         # progress is expected to keep the cursor mid-line (right after stats)
         while True:
-            sys.stderr.write(("-- %s %s %s\n" if debug else "\r-- %s %s %s  \r") % (
-                self.progress,
-                url,
-                ANSI_OFF, ))
+            sys.stderr.write(("-- %s %s %s\n"
+                              if debug else "\r-- %s %s %s  \r") % (
+                                  self.progress,
+                                  url,
+                                  ANSI_OFF, ))
             all_args = curlopts[:]
             all_args.extend(self.ext_args)
             if self.refer:
@@ -310,8 +311,9 @@ class singlefile(object):
 
             elif hdr.status_code == 200:
                 if not debug:
-                    sys.stderr.write("\r-- %s -- %s%s%s\n" % (
-                        url, ANSI_GREEN, str(hdr.status_code), ANSI_OFF))  # XXX
+                    sys.stderr.write("\r-- %s -- %s%s%s\n" %
+                                     (url, ANSI_GREEN, str(hdr.status_code),
+                                      ANSI_OFF))  # XXX
             elif hdr.status_code > 305:
                 sys.stderr.write("\r-- %s -- %s%s%s\n" % (
                     url, ANSI_RED, str(hdr.status_code), ANSI_OFF))  # XXX
@@ -472,7 +474,8 @@ class singlefile(object):
                 shortened_url = shortened_url[:120 - len(shortened_name
                                                          )] + shortened_name
             if not debug:
-                sys.stderr.write("\r %15s %s%s \r" % ('', shortened_url, ANSI_OFF))
+                sys.stderr.write("\r %15s %s%s \r" %
+                                 ('', shortened_url, ANSI_OFF))
             ## in 2.x it's not possible to switch to non-line delimited reads
             ## XXX try to find a way to make the transfer efficient
             for buf in run_curl.stdout:
@@ -534,8 +537,8 @@ class singlefile(object):
                         # XXX hack (help force)
                         self.error = None
                         self.filesize = counted_size
-                        sys.stderr.write("?? read more (%d of %d)\n" % (counted_size,
-                                                          expected_size))
+                        sys.stderr.write("?? read more (%d of %d)\n" %
+                                         (counted_size, expected_size))
             else:
                 # XXX did remove, but may need for redirect parsing
                 break
@@ -667,8 +670,9 @@ class singlefile(object):
             report_color = ANSI_GREEN
             good.append('OK')
             ok = ' '.join(good)
-        sys.stderr.write("%s%s %s%s%s (%d)\n" %
-                         (CR, filename, report_color, ok, ANSI_OFF, self.filesize))
+        sys.stderr.write(
+            "%s%s %s%s%s (%d)\n" %
+            (CR, filename, report_color, ok, ANSI_OFF, self.filesize))
 
         ## TODO avoid if duplicate
         ## 1/3 write .meta as text with some fields
