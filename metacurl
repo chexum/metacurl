@@ -22,10 +22,6 @@ N_ALL = [
     'file', 'size', 'stamp', 'md5', 'sha1', 'sha256', 'githash', 'mimetype',
     'charset', 'encoding', 'url', 'stored', 'server', 'etag'
 ]
-ANSI_OFF = b'\033[m\033[K'
-ANSI_RED = b'\033[31m'
-ANSI_GREEN = b'\033[32m'
-CR = b'\r'
 
 class MetaFLJSONEncoder(json.JSONEncoder):
     def encode(self, o):
@@ -243,6 +239,11 @@ class singlefile(object):
             ANSI_RED = ''
             ANSI_GREEN = ''
             CR = '\n'
+        else:
+            ANSI_OFF = b'\033[m\033[K'
+            ANSI_RED = b'\033[31m'
+            ANSI_GREEN = b'\033[32m'
+            CR = b'\r'
 
         if '#' in url:
             ## TODO parse fragment for hash spec
@@ -601,6 +602,11 @@ class singlefile(object):
             ANSI_RED = ''
             ANSI_GREEN = ''
             CR = '\n'
+        else:
+            ANSI_OFF = b'\033[m\033[K'
+            ANSI_RED = b'\033[31m'
+            ANSI_GREEN = b'\033[32m'
+            CR = b'\r'
 
         if self.error and not debug:
             sys.stderr.write("!! cannot save, %s%s%s\n" %
