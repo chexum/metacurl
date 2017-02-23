@@ -1,0 +1,4 @@
+-- downloading 020_etagmd5.out 
+
+020_etagmd5.out MD5 OK (273)
+{"file":"020_etagmd5.out","size":273,"stamp":1484088509,"md5":"5fbcb296eab2c207e80bf3ba8aca2691","sha1":"7300f0fd65e286e010125770703e3b9db2d73bfb","sha256":"360b50a37b91e74b366f382ce571b3e89c4f82a93137ff152d802781dc020a14","githash":null,"mimetype":"application/binary","charset":null,"encoding":null,"url":"020_etagmd5.out","stored":null,"server":"nginx","etag":"5fbcb296eab2c207e80bf3ba8aca2691"}
