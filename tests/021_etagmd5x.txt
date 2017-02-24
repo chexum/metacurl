@@ -1,0 +1,20 @@
+HTTP/1.1 200 OK
+Date: Fri, 10 Feb 2017 22:48:29 GMT
+Content-Type: application/binary
+ETag: "5fbcb296eab2c207e80bf3ba8aca2691a"
+Last-Modified: Tue, 10 Jan 2017 22:48:29 GMT
+Expires: Fri, 10 Feb 2017 23:48:29 GMT
+Cache-Control: max-age=3600
+Strict-Transport-Security: max-age=180000
+Server: nginx
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<title></title>
+</head>
+<body>
+<p>
+</p>
+</body>
