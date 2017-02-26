@@ -432,12 +432,17 @@ class singlefile(object):
             except (KeyError, ValueError, TypeError):
                 pass
 
+            # hack - sometimes MD5 is part of the etag
             try:
                 self.etag = hdr.get_single_header('Etag').strip("\x22\x27")
-                # hack - sometimes MD5 is part of the etag
-                m = re.match('([0-9a-fA-F]{32})($|:)', self.etag)
+                m = re.match('([0-9a-fA-F]+)($|:)', self.etag)
                 if m and len(m.group(1)) == 32:
-                    self.expected_md5 = m.group(1).lower()
+                    dig = m.group(1).lower()
+                    if self.expected_md5 and self.expected_md5 != dig:
+                        sys.stderr.write(
+                                    "!! different MD5 digests to check\n")
+                    else:
+                        self.expected_md5 =dig
             except (AttributeError, TypeError):
                 self.etag = None
 
