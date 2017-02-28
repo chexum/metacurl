@@ -421,8 +421,8 @@ class singlefile(object):
             try:
                 for h in hdr.headers['X-GOOG-HASH']:
                     (t, d) = h.split('=', 1)
-                    if t.upper() == 'MD5':
-                        dig = binascii.hexlify(base64.b64decode(d))
+                    if t.strip().upper() == 'MD5':
+                        dig = binascii.hexlify(base64.b64decode(d.strip()))
                         if self.expected_md5:
                             if self.expected_md5 != dig:
                                 sys.stderr.write(
