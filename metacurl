@@ -255,14 +255,18 @@ class singlefile(object):
         # check if any fixing is needed
         url, frag = self.canonical_url(url, frag)
 
-        m = re.search('(md5|sha1|sha256)[A-Za-z]*=([A-Fa-f0-9]+)', frag, re.I)
+        m = re.search('(md5|sha1|sha256)[A-Za-z]*=([A-Za-z0-9+/=]+)', frag, re.I)
         if m:
             if m.group(1).upper() == 'MD5':
                 self.expected_md5 = m.group(2)
             elif m.group(1).upper() == 'SHA1':
                 self.expected_sha1 = m.group(2)
             elif m.group(1).upper() == 'SHA256':
-                self.expected_sha256 = m.group(2)
+                hash = m.group(2)
+                if len(hash)<64:
+                    self.expected_sha256=binascii.hexlify(base64.b64decode(hash))
+                else:
+                    self.expected_sha256=hash
 
         # save original url and extract possible filename (without parameters)
         if not self.orig_url:
