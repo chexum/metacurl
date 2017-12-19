@@ -643,7 +643,11 @@ class singlefile(object):
                              (self.mimetype, ANSI_OFF))
             return None
         if self.mimetype.upper()[0:5] == 'TEXT/':  # and not debug:
-            if self.filename.split('.')[-1].upper(
+        # -- https://gnupg.org/ftp/gcrypt/npth/npth-1.5.tar.bz2 -- 200
+        # !! not saving, MIME type is text/plain (npth-1.5.tar.bz2)
+            if self.filename.split('.')[-1].upper() == 'BZ2':
+                self.mimetype='application/x-bzip2'
+            elif self.filename.split('.')[-1].upper(
             ) not in ['SIG', 'SIGN', 'PUB', 'ASC', 'TXT', 'C', 'ASM', 'MD5']:
                 sys.stderr.write("!! not saving, MIME type is %s (%s) %s\n" %
                                  (self.mimetype, self.filename, ANSI_OFF))
