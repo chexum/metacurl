@@ -658,8 +658,9 @@ class singlefile(object):
             os.utime(self.tmpname, (self.stamp, self.stamp))
         os.chmod(self.tmpname, 0644)
 
-        self.filename = filename
-        os.rename(self.tmpname, filename)
+        self.filename = filename.replace('/','_')
+        print self.filename,self.tmpname
+        os.rename(self.tmpname, self.filename)
         self.tmpname = None
         bad = []
         good = []
