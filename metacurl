@@ -690,17 +690,19 @@ class singlefile(object):
         if self.filename[-4:].upper() == '.PHP':
             sys.stderr.write("!! not saving, .php extension\n")
             return None
-        if self.mimetype is None or self.mimetype.upper() == 'TEXT/HTML':
+        if self.mimetype and self.mimetype.upper() == 'TEXT/HTML':
             sys.stderr.write("!! not saving, MIME type is %s%s\n" %
                              (self.mimetype, ANSI_OFF))
             return None
-        if self.mimetype.upper()[0:5] == 'TEXT/':  # and not debug:
+        if self.mimetype and self.mimetype.upper()[0:5] == 'TEXT/':  # and not debug:
         # -- https://gnupg.org/ftp/gcrypt/npth/npth-1.5.tar.bz2 -- 200
         # !! not saving, MIME type is text/plain (npth-1.5.tar.bz2)
             if self.filename.split('.')[-1].upper() == 'BZ2':
                 self.mimetype='application/x-bzip2'
+            elif self.filename.split('.')[-1].upper() == 'PDF':
+                self.mimetype='application/pdf'
             elif self.filename.split('.')[-1].upper(
-            ) not in ['SIG', 'SIGN', 'PUB', 'ASC', 'TXT', 'C', 'ASM', 'MD5']:
+            ) not in ['SIG', 'SIGN', 'PUB', 'ASC', 'TXT', 'C', 'S', 'ASM', 'MD5']:
                 sys.stderr.write("!! not saving, MIME type is %s (%s) %s\n" %
                                  (self.mimetype, self.filename, ANSI_OFF))
                 return None
