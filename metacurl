@@ -12,6 +12,7 @@ import sqlite3
 import base64, binascii
 import urllib
 import HTMLParser
+import StringIO
 
 ###########################################################################
 ###########################################################################
@@ -307,16 +308,62 @@ class singlefile(object):
                 ])
             all_args.append('--')
             all_args.append(url)
+
+            ### ftp has metadata, but curl does not pass them - fake them here
+            if url[:3] == 'ftp':
+                ftpconv = ''
+
+                import ftplib
+                import urlparse
+                u = urlparse.urlparse(url)
+                # ParseResult(scheme='ftp', netloc='atrey.karlin.mff.cuni.cz:21', path='/pub/linux/pci/pciutils-3.5.6.tar.gz.sign', params='', query='', fragment='')
+                try:
+                    conn = ftplib.FTP(u.netloc)
+                    res = conn.login()
+                    print '* ftp',res.split("\n")[0]
+                    # 230 Login successful.
+                    if res[0] == '2':
+                        firstline = res[4:].split('\n')[0].strip("\r")
+                        ftpconv = ftpconv + 'HTTP/1.0 200 ' + firstline + '\r\n'
+
+                    # 550 SIZE not allowed in ASCII mode
+                    conn.voidcmd('TYPE I')
+
+                    ftpsz = conn.size(u.path)
+#                    res=conn.sendcmd("SIZE %s"%(u.path))
+                    print '* ftp size 213',ftpsz
+                    # 213 811
+                    #if res[0] == '2':
+                    ftpconv = ftpconv + 'Content-Length: ' + str(ftpsz) + '\r\n'
+                    ftptm=conn.sendcmd("MDTM %s"%(u.path))
+                    print '* ftp time',ftptm
+                    # 213 20171117140512
+                    if ftptm[0] == '2':
+                        tm = ftptm[4:]
+                        matchtm=re.match('^(\d+)(\d{2})(\d{2})(\d{2})(\d{2})(\d{2}(\.\d+|))$',tm)
+                        z = datetime.datetime(int(matchtm.group(1)),int(matchtm.group(2)),int(matchtm.group(3)),
+                                int(matchtm.group(4)),int(matchtm.group(5)),int(matchtm.group(6)),0,None)
+                        ftpconv = ftpconv + 'Last-Modified: ' + z.strftime("%a, %d %b %Y %T GMT") + '\r\n'
+                    conn.quit()
+                    ftpconv = ftpconv + '\r\n'
+                except ftplib.all_errors, e:
+                    print '* ftp',e
+
+                ftpstr = StringIO.StringIO(ftpconv)
+                hdr = http_headerblock(ftpstr)
+            else:
+                hdr = None
+
             run_curl = subprocess.Popen(all_args, stdout=subprocess.PIPE)
             #sys.stderr.write("\n"+' | '.join(all_args)) # XXX
 
-            hdr = http_headerblock(run_curl.stdout)
-            # if via proxy, there might be a first HTTP response about the connection
-            if None != hdr.lines and len(
-                    hdr.lines) == 0 and hdr.status_code == 200:
+            if hdr is None:
                 hdr = http_headerblock(run_curl.stdout)
 
-            elif hdr.status_code == 200:
+            # if via proxy, there might be a first HTTP response about the connection
+            if None != hdr.lines and len(hdr.lines) == 0 and hdr.status_code == 200:
+                hdr = http_headerblock(run_curl.stdout)
+            elif hdr.status_code == 200 or hdr.status_code == 150:
                 if not debug:
                     sys.stderr.write("\r-- %s -- %s%s%s\n" %
                                      (url, ANSI_GREEN, str(hdr.status_code),
