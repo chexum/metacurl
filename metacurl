@@ -294,6 +294,9 @@ class singlefile(object):
         # initiallly, cursor is at the start of the line
         # progress is expected to keep the cursor mid-line (right after stats)
         while True:
+            if self.orig_url != url and re.match(r'https?://t\.co/.*|.*kernel\.org/.*|.*downloads.sourceforge.net/.*',self.orig_url):
+                print "forget",self.orig_url,url
+                self.orig_url = url
             sys.stderr.write(("-- %s %s %s\n"
                               if debug else "\r-- %s %s %s  \r") % (
                                   self.progress,
