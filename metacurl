@@ -241,11 +241,13 @@ class singlefile(object):
             ANSI_OFF = ''
             ANSI_RED = ''
             ANSI_GREEN = ''
+            ANSI_EL = ''
             CR = '\n'
         else:
             ANSI_OFF = b'\033[m\033[K'
             ANSI_RED = b'\033[31m'
             ANSI_GREEN = b'\033[32m'
+            ANIS_EL = b'\033[K' # tput el
             CR = b'\r'
 
         if '#' in url:
@@ -662,11 +664,13 @@ class singlefile(object):
             ANSI_OFF = ''
             ANSI_RED = ''
             ANSI_GREEN = ''
+            ANSI_EL = ''
             CR = '\n'
         else:
             ANSI_OFF = b'\033[m\033[K'
             ANSI_RED = b'\033[31m'
             ANSI_GREEN = b'\033[32m'
+            ANSI_EL = b'\033[K' # tput el
             CR = b'\r'
 
         if self.error and not debug:
@@ -713,7 +717,7 @@ class singlefile(object):
         os.chmod(self.tmpname, 0644)
 
         self.filename = filename.replace('/','_')
-        print self.filename,self.tmpname
+        print self.filename,self.tmpname,ANSI_EL
         os.rename(self.tmpname, self.filename)
         self.tmpname = None
         bad = []
@@ -744,9 +748,10 @@ class singlefile(object):
             report_color = ANSI_GREEN
             good.append('OK')
             ok = ' '.join(good)
+        # xxx no LF when debug
         sys.stderr.write(
-            "%s%s %s%s%s (%d)\n" %
-            (CR, filename, report_color, ok, ANSI_OFF, self.filesize))
+            "%s%s%s %s%s%s (%d)%s\n" %
+            (CR, ("\n" if len(bad) and not debug else ""), filename, report_color, ok, ANSI_OFF, self.filesize, ANSI_EL))
 
         ## TODO avoid if duplicate
         ## 1/3 write .meta as text with some fields
