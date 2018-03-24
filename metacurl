@@ -293,7 +293,7 @@ class singlefile(object):
         self.filename = hunk
         self.mimetype = None
 
-        # initiallly, cursor is at the start of the line
+        # initially, cursor is at the start of the line
         # progress is expected to keep the cursor mid-line (right after stats)
         while True:
             if self.orig_url != url and re.match(r'https?://t\.co/.*|.*kernel\.org/.*|.*downloads.sourceforge.net/.*',self.orig_url):
