@@ -854,6 +854,8 @@ def main():
     parser.add_argument('-N', '--no-buffer', action='store_true')
     parser.add_argument('-s', '--silent', action='store_true')
     parser.add_argument('-r', '--range')
+    parser.add_argument('-g', '--globoff') #       Disable URL sequences and ranges using {} and []
+
     parser.add_argument('-k', '--insecure', action='store_true')
     parser.add_argument('-K', '--config')
     parser.add_argument('-H', '--header', action='append')
@@ -887,7 +889,8 @@ def main():
         'ACCEPT-ENCODING': 'gzip, deflate',
     }
     # --silent and --include needs to be there always
-    curl_args.extend(['-s', '-i'])
+    # along with --globoff
+    curl_args.extend(['-s', '-i', '-g'])
     # try to add proxying unconditionally
     try:
         curl_args.extend(['--socks5-hostname', os.environ['SOCKS5']])
