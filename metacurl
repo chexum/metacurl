@@ -575,7 +575,18 @@ class singlefile(object):
             ## LAST-MODIFIED Wed, 21 Dec 2016 03:44:53 GMT
             ##                   1482291893
             ## X-GOOG-GENERATION 1482291893643481
+            ## MEMENTO-DATETIME Thu, 16 Oct 2008 15:18:32 GMT
+            ## X-ARCHIVE-ORIG-DATE Thu, 16 Oct 2008 15:18:32 GMT
+            ## X-ARCHIVE-ORIG-ETAG "2967404-3200700"
+            ## X-ARCHIVE-ORIG-LAST-MODIFIED Wed, 06 Feb 2008 03:08:53 GMT
+
             self.stamp = hdr.get_chrono_header('Last-Modified')
+            try:
+                z = hdr.get_chrono_header('X-Archive-Orig-Last-Modified')
+                if z:
+                    self.stamp = z
+            except:
+                pass
             try:
                 z = float(hdr.get_single_header('X-GOOG-Generation'))
                 if abs(z / 1000000.0 - self.stamp) < 5:
