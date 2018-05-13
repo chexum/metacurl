@@ -127,9 +127,11 @@ class http_headerblock(object):
         # November, 14-Thu-02 14:01:04 GMT
         # Monday, 25-Nov-102 12:49:26 GMT
         # Thu, 18 Dec 2003 01:32:51 GMT
+        # Fri, 13 Apr 2018 19:07:57 GMT
         n = self.get_duplicated_header(name)
         try:
-            d = dateutil.parser.parse(n)
+            tzi = {"UTC": 0, "GMT": 0}
+            d = dateutil.parser.parse(n,tzinfos=tzi)
             t = int(d.strftime("%s"))
             return t
         except (ValueError, AttributeError):
