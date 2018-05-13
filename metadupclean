@@ -48,6 +48,8 @@ class FnHash(object):
                         self.sha256attr = xattr._fgetxattr(f.fileno(),'user.sha256')
                         self.sha256 = self.sha256attr
                     except:
+                        pass
+                    if not self.sha256:
                         f_sha256 = hashlib.new('sha256')
                         for b in f:
                             f_sha256.update(b)
