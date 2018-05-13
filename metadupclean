@@ -1,0 +1,204 @@
+#!/usr/bin/env python
+# vim: ts=8 sw=4 sta sts=4 ai
+
+from pysqlite2 import dbapi2 as sqlite
+#from optparse import OptionParser
+import sys
+import os
+import hashlib
+import re
+
+
+try:
+    import xattr
+    use_xattr=1
+except ImportError,e:
+    use_xattr=None
+
+class FnHash(object):
+    size = None
+    mtime = None
+    name = None
+    sha256 = None
+    sha256attr = None
+    sha256real = None
+
+    # XXX recheck when advising removal
+    # XXX also set user.md5 and user.sha1 from db if requested ONLY
+
+    def __init__(self, name=""):
+        try:
+            with open(name) as f:
+                si = os.fstat(f.fileno())
+                if si:
+                    self.size = si.st_size
+                    self.mtime = si.st_mtime
+                    self.ino = si.st_ino
+                    self.dev = si.st_dev
+                    self.nlink = si.st_nlink
+                if '/' in name:
+                    self.name = name.split('/')[-1]
+                    self.path = os.path.dirname(name)
+                else:
+                    self.name = name
+                    self.path = ''
+
+                if use_xattr:
+                    try:
+                        self.sha256attr = xattr._fgetxattr(f.fileno(),'user.sha256')
+                        self.sha256 = self.sha256attr
+                    except:
+                        f_sha256 = hashlib.new('sha256')
+                        for b in f:
+                            f_sha256.update(b)
+                        self.sha256real = f_sha256.hexdigest()
+                        self.sha256 = self.sha256real
+        except IOError,e:
+            pass
+
+    # XXX reload - refresh sha256 if not loaded
+    def reload(self):
+        pass
+
+    # update - update hashes on xattrs if not present
+    def update(self,sha256=None,sha1=None,md5=None):
+        allok = None
+        if use_xattr and (sha256 or sha1 or md5):
+            if sha256 and self.sha256real and not self.sha256attr:
+                with open(os.path.join(self.path,self.name)) as f:
+                    try:
+                        if sha256 and self.sha256real == sha256 and not self.sha256attr:
+                            xattr._fsetxattr(f.fileno(),'user.sha256',self.sha256)
+                            allok = True
+                    except:
+                        pass
+        return allok
+
+    def __repr__(self):
+        return "h:%s @:%s s:%s d:%d i:%d n:%s"%(self.sha256[:16],self.mtime,self.size,self.dev,self.ino,self.name[:16])
+
+def appfind(db_conn,arg,max_rows=11,try_hash_min=6):
+
+    if max_rows == -1: max_rows = 1000;
+
+    cur = db_conn.cursor();
+    if re.search('^[0-9a-fA-F]{%d,}$'%(try_hash_min,),arg):
+	cur.execute("select path,fn,md5,sha1,sha256 from meta where md5||':'||sha1||':'||sha256 like ? order by stamp desc limit ?",('%'+arg+'%',max_rows,))
+    else:
+	cur.execute('select path,fn,md5,sha1,sha256 from meta where fn like ? order by stamp desc limit ?',(arg+'%',max_rows,))
+
+    result = cur.fetchall()[0:max_rows]
+
+    cur.close()
+    return result
+
+def maybe_int(maybeq):
+    try:
+        return int(maybeq)
+    except (ValueError,TypeError):
+        return 0 if maybeq=='' or maybeq=='?' or maybeq is None else maybeq
+
+# metadupclean
+# - XXX does not remove last entry in database
+# - XXX does not remove last existing file copy
+# - currently, does not remove files or modify databases
+# - writes new xattrs
+#
+# Reasons of removing a duplicate metadata/fs entry:
+# Invalid/temporary name of an already downloaded/stored entry, with *existing* original file, but NO record for the new name
+# - ensure original file exists, remove this file as invalid
+# Invalid/temporary name of an already downloaded/stored entry, with *existing* original file, WITH an entry for this name too
+# - ensure this record is newer, remove duplicate (newer) record
+# - ensure original file exists, only then remove duplicate file with this name
+
+def metadel(db_conn,cwd,fn):
+    cur = db_conn.cursor()
+
+    node = FnHash(fn)
+    if node.sha256 == 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855' and node.size == 0:
+        print 'removable %s (null)'%(node.name,)
+        #rint "rm '%s'"%(fn,)
+        return
+
+    cur.execute("select rowid,sha256,strftime('%s',stamp)+0,size,path,fn from meta where sha256=? order by (strftime('%s',stored)+0) asc",(node.sha256,))
+    #                   0     1       2                      3    4    5
+    orig_name=None
+    orig_path=None
+    orig_stored=None
+    err_rows=[]
+    row_fn={}
+    for newrow in cur.fetchall():
+        r = [
+            newrow[0],                  # 0 rowid
+            newrow[1],                  # 1 sha256
+            newrow[5],                  # 2 fn
+            newrow[4],                  # 3 path
+        ]
+        try:
+            print r[0],r[1][:12],r[2].encode('utf-8'),r[3].encode('utf-8')
+        except:
+            # should be rare - make sure if it barfed, we knew why
+            print '* bad encoding %s'%(r[0],)
+
+        # XXX store sha256 in xattrs in case
+        if not orig_stored:
+            orig_stored = node.update(newrow[1],)
+
+        row_fn[r[0]]=r[3]
+        newfn = os.path.join(r[3],r[2])
+        testnode = FnHash(newfn)
+
+        if testnode.sha256 == node.sha256 and testnode.size == node.size:
+            if not orig_name:
+                # if we're going by stored/desc, the first recorded is the most authentic
+                orig_name = testnode.name
+                orig_path =  testnode.path
+                if testnode.name == node.name:
+                    # if node is different (or duplicate hardlink), that file can be removed
+                    # check link count and inode/dev matchn
+                    if node.nlink > 1 or \
+                        node.dev <> testnode.dev or \
+                        node.ino <> testnode.ino:
+                        print '* removable %s (matches %s in %s)'%(fn,orig_name,orig_path)
+                else:
+                    print '* removable %s (matches %s in %s)'%(fn,orig_name,orig_path)
+                # if we have a record of a missing file
+                # BUT also we have confirmed copies, those can be removed from sql
+                for row in err_rows:
+                    print '* sql %d deletable (%s missed for %s)'%(row,row_fn[row],orig_name)
+                    print "delete from meta where rowid=%s and sha256='%s';"%(row,node.sha256)
+                    err_rows=[]
+            else:
+                print '* sql %d deletable (%s dup for %s)'%(r[0],testnode.name,orig_name)
+                print "delete from meta where rowid=%s and sha256='%s';"%(r[0],node.sha256)
+        else:
+            if orig_name:
+                print '* sql %d deletable (%s gone for %s)'%(r[0],r[2],orig_name)
+                print "delete from meta where rowid=%s and sha256='%s';"%(r[0],node.sha256)
+            else:
+                # first item can't be found - remember its rec
+                # XXX hoping if a file was removed, it's not the first recorded
+                print '* row %s cant find %s (for %s)'%(r[0],newfn,fn,)
+                err_rows.append(r[0])
+
+    cur.close()
+    return
+
+def main(argv=None):
+    argv = argv or sys.argv[1:]
+
+    db_file = os.environ['FLDB']
+
+    with sqlite.connect(db_file) as db_conn:
+	cwd = os.getcwd()
+        for fn in argv:
+            if os.path.isfile(fn):
+                fn = fn.decode('utf-8')
+                metadel(db_conn,cwd,fn)
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except KeyboardInterrupt:
+	print "^C",
+	sys.exit(1)
