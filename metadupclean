@@ -106,31 +106,24 @@ def metadel(db_conn,cwd,fn):
         return
 
     cur.execute("select rowid,sha256,strftime('%s',stamp)+0,size,path,fn from meta where sha256=? order by (strftime('%s',stored)+0) asc",(node.sha256,))
-    #                   0     1       2                      3    4    5
     orig_name=None
     orig_path=None
     orig_stored=None
     err_rows=[]
     row_fn={}
-    for newrow in cur.fetchall():
-        r = [
-            newrow[0],                  # 0 rowid
-            newrow[1],                  # 1 sha256
-            newrow[5],                  # 2 fn
-            newrow[4],                  # 3 path
-        ]
+    for r in cur.fetchall():
         try:
-            print r[0],r[1][:12],r[2].encode('utf-8'),r[3].encode('utf-8')
+            print r['rowid'],r['sha256'][:12],r['fn'].encode('utf-8'),r['path'].encode('utf-8')
         except:
             # should be rare - make sure if it barfed, we knew why
-            print '* bad encoding %s'%(r[0],)
+            print '* bad encoding %s'%(r['rowid'],)
 
         # XXX store sha256 in xattrs in case
         if not orig_stored:
-            orig_stored = node.update(newrow[1],)
+            orig_stored = node.update(r['sha256'],)
 
-        row_fn[r[0]]=r[3]
-        newfn = os.path.join(r[3],r[2])
+        row_fn[r['rowid']]=r['fn']
+        newfn = os.path.join(r['path'],r['fn'])
         testnode = FnHash(newfn)
 
         if testnode.sha256 == node.sha256 and testnode.size == node.size:
@@ -155,16 +148,16 @@ def metadel(db_conn,cwd,fn):
                     err_rows=[]
             else:
                 print '* sql %d deletable (%s dup for %s)'%(r[0],testnode.name,orig_name)
-                print "delete from meta where rowid=%s and sha256='%s';"%(r[0],node.sha256)
+                print "delete from meta where rowid=%s and sha256='%s';"%(r['rowid'],node.sha256)
         else:
             if orig_name:
-                print '* sql %d deletable (%s gone for %s)'%(r[0],r[2],orig_name)
-                print "delete from meta where rowid=%s and sha256='%s';"%(r[0],node.sha256)
+                print '* sql %d deletable (%s gone for %s)'%(r['rowid'],r['fn'],orig_name)
+                print "delete from meta where rowid=%s and sha256='%s';"%(r['rowid'],node.sha256)
             else:
                 # first item can't be found - remember its rec
                 # XXX hoping if a file was removed, it's not the first recorded
-                print '* row %s cant find %s (for %s)'%(r[0],newfn,fn,)
-                err_rows.append(r[0])
+                print '* row %s cant find %s (for %s)'%(r['rowid'],newfn,fn,)
+                err_rows.append(r['rowid'])
 
     cur.close()
     return
@@ -175,6 +168,7 @@ def main(argv=None):
     db_file = os.environ['FLDB']
 
     with sqlite.connect(db_file) as db_conn:
+        db_conn.row_factory = sqlite.Row
 	cwd = os.getcwd()
         for fn in argv:
             if os.path.isfile(fn):
