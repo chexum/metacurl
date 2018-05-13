@@ -77,21 +77,6 @@ class FnHash(object):
     def __repr__(self):
         return "h:%s @:%s s:%s d:%d i:%d n:%s"%(self.sha256[:16],self.mtime,self.size,self.dev,self.ino,self.name[:16])
 
-def appfind(db_conn,arg,max_rows=11,try_hash_min=6):
-
-    if max_rows == -1: max_rows = 1000;
-
-    cur = db_conn.cursor();
-    if re.search('^[0-9a-fA-F]{%d,}$'%(try_hash_min,),arg):
-	cur.execute("select path,fn,md5,sha1,sha256 from meta where md5||':'||sha1||':'||sha256 like ? order by stamp desc limit ?",('%'+arg+'%',max_rows,))
-    else:
-	cur.execute('select path,fn,md5,sha1,sha256 from meta where fn like ? order by stamp desc limit ?',(arg+'%',max_rows,))
-
-    result = cur.fetchall()[0:max_rows]
-
-    cur.close()
-    return result
-
 def maybe_int(maybeq):
     try:
         return int(maybeq)
