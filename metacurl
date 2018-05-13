@@ -943,7 +943,7 @@ def main():
             for n in v:
                 curl_args.extend(['--%s' % (i), '%s' % (n, )])
         elif i in [
-                '1_0', '2_0', 'dump_header', 'silent', 'include',
+                '1_0', '2_0', 'dump_header', 'silent', 'include', 'globoff',
                 'curl_command', 'debug_summary', 'URL'
         ]:
             # silent and include will be added always
