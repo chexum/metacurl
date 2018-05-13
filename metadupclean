@@ -22,6 +22,9 @@ class FnHash(object):
     sha256 = None
     sha256attr = None
     sha256real = None
+    sha1 = None
+    sha1attr = None
+    sha1real = None
 
     # XXX recheck when advising removal
     # XXX also set user.md5 and user.sha1 from db if requested ONLY
@@ -47,6 +50,8 @@ class FnHash(object):
                     try:
                         self.sha256attr = xattr._fgetxattr(f.fileno(),'user.sha256')
                         self.sha256 = self.sha256attr
+                        self.sha1attr = xattr._fgetxattr(f.fileno(),'user.sha1')
+                        self.sha1 = self.sha1attr
                     except:
                         pass
                     if not self.sha256:
@@ -66,11 +71,19 @@ class FnHash(object):
     def update(self,sha256=None,sha1=None,md5=None):
         allok = None
         if use_xattr and (sha256 or sha1 or md5):
-            if sha256 and self.sha256real and not self.sha256attr:
+            if (sha256 and self.sha256real and not self.sha256attr) or \
+               (sha1                       and not self.sha1attr):
                 with open(os.path.join(self.path,self.name)) as f:
                     try:
                         if sha256 and self.sha256real == sha256 and not self.sha256attr:
-                            xattr._fsetxattr(f.fileno(),'user.sha256',self.sha256)
+                            xattr._fsetxattr(f.fileno(),'user.sha256',sha256.encode('ascii'))
+                            allok = True
+                    except:
+                        pass
+                    try:
+                        if sha1                                 and not self.sha1attr:
+                            allok = None
+                            xattr._fsetxattr(f.fileno(),'user.sha1',sha1.encode('ascii'))
                             allok = True
                     except:
                         pass
@@ -107,7 +120,7 @@ def metadel(db_conn,cwd,fn):
         #rint "rm '%s'"%(fn,)
         return
 
-    cur.execute("select rowid,sha256,strftime('%s',stamp)+0,size,path,fn from meta where sha256=? order by (strftime('%s',stored)+0) asc",(node.sha256,))
+    cur.execute("select rowid,sha256,sha1,strftime('%s',stamp)+0,size,path,fn from meta where sha256=? order by (strftime('%s',stored)+0) asc",(node.sha256,))
     orig_name=None
     orig_path=None
     orig_stored=None
@@ -122,7 +135,7 @@ def metadel(db_conn,cwd,fn):
 
         # XXX store sha256 in xattrs in case
         if not orig_stored:
-            orig_stored = node.update(r['sha256'],)
+            orig_stored = node.update(r['sha256'],r['sha1'],)
 
         row_fn[r['rowid']]=r['fn']
         newfn = os.path.join(r['path'],r['fn'])
