@@ -25,9 +25,11 @@ class FnHash(object):
     sha1 = None
     sha1attr = None
     sha1real = None
+    md5 = None
+    md5attr = None
+    md5real = None
 
     # XXX recheck when advising removal
-    # XXX also set user.md5 and user.sha1 from db if requested ONLY
 
     def __init__(self, name=""):
         try:
@@ -52,6 +54,8 @@ class FnHash(object):
                         self.sha256 = self.sha256attr
                         self.sha1attr = xattr._fgetxattr(f.fileno(),'user.sha1')
                         self.sha1 = self.sha1attr
+                        self.md5attr = xattr._fgetxattr(f.fileno(),'user.md5')
+                        self.md5 = self.md5attr
                     except:
                         pass
                     if not self.sha256:
@@ -72,7 +76,8 @@ class FnHash(object):
         allok = None
         if use_xattr and (sha256 or sha1 or md5):
             if (sha256 and self.sha256real and not self.sha256attr) or \
-               (sha1                       and not self.sha1attr):
+               (sha1                       and not self.sha1attr) or \
+               (md5                        and not self.md5attr):
                 with open(os.path.join(self.path,self.name)) as f:
                     try:
                         if sha256 and self.sha256real == sha256 and not self.sha256attr:
@@ -84,6 +89,13 @@ class FnHash(object):
                         if sha1                                 and not self.sha1attr:
                             allok = None
                             xattr._fsetxattr(f.fileno(),'user.sha1',sha1.encode('ascii'))
+                            allok = True
+                    except:
+                        pass
+                    try:
+                        if md5                                  and not self.md5attr:
+                            allok = None
+                            xattr._fsetxattr(f.fileno(),'user.md5',md5.encode('ascii'))
                             allok = True
                     except:
                         pass
@@ -123,7 +135,7 @@ def metadel(db_conn,cwd,fn):
         #rint "rm '%s'"%(fn,)
         return
 
-    cur.execute("select rowid,sha256,sha1,strftime('%s',stamp)+0,size,path,fn from meta where sha256=? order by (strftime('%s',stored)+0) asc",(node.sha256,))
+    cur.execute("select rowid,sha256,sha1,md5,strftime('%s',stamp)+0,size,path,fn from meta where sha256=? order by (strftime('%s',stored)+0) asc",(node.sha256,))
     orig_name=None
     orig_path=None
     orig_stored=None
@@ -138,7 +150,7 @@ def metadel(db_conn,cwd,fn):
             print '* bad encoding %s'%(r['rowid'],)
 
         if not orig_stored:
-            orig_stored = node.update(r['sha256'],r['sha1'],)
+            orig_stored = node.update(r['sha256'],r['sha1'],r['md5'])
 
         row_fn[r['rowid']]=r['fn']
         newfn = os.path.join(r['path'],r['fn'])
