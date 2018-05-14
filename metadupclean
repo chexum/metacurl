@@ -129,6 +129,7 @@ def metadel(db_conn,cwd,fn):
     orig_stored=None
     err_rows=[]
     row_fn={}
+    del_rows={}
     for r in cur.fetchall():
         try:
             print r['rowid'],r['sha256'][:12],r['fn'].encode('utf-8'),r['path'].encode('utf-8')
@@ -136,7 +137,6 @@ def metadel(db_conn,cwd,fn):
             # should be rare - make sure if it barfed, we knew why
             print '* bad encoding %s'%(r['rowid'],)
 
-        # XXX store sha256 in xattrs in case
         if not orig_stored:
             orig_stored = node.update(r['sha256'],r['sha1'],)
 
@@ -162,17 +162,29 @@ def metadel(db_conn,cwd,fn):
                     print '* removable %s (matches %s in %s)'%(fn,orig_name,orig_path)
                 # if we have a record of a missing file
                 # BUT also we have confirmed copies, those can be removed from sql
-                for row in err_rows:
-                    print '* sql %d deletable (%s missed for %s)'%(row,row_fn[row],orig_name)
-                    print "delete from meta where rowid=%s and sha256='%s';"%(row,node.sha256)
-                    err_rows=[]
+                for rowid in err_rows:
+                    if rowid in del_rows:
+                        print '* sql %d already deleted'%(rowid)
+                    else:
+                        print '* sql %d deletable (%s missed for %s)'%(rowid,row_fn[rowid],orig_name)
+                        print "delete from meta where rowid=%s and sha256='%s';"%(rowid,node.sha256)
+                        del_rows[rowid]=rowid
+                err_rows=[]
             else:
-                print '* sql %d deletable (%s dup for %s)'%(r[0],testnode.name,orig_name)
-                print "delete from meta where rowid=%s and sha256='%s';"%(r['rowid'],node.sha256)
+                if r['rowid'] in del_rows:
+                    print '* sql %d already deleted'%(r['rowid'])
+                else:
+                    print '* sql %d deletable (%s dup for %s)'%(r['rowid'],testnode.name,orig_name)
+                    print "delete from meta where rowid=%s and sha256='%s';"%(r['rowid'],node.sha256)
+                del_rows[r['rowid']]='del'
         else:
             if orig_name:
-                print '* sql %d deletable (%s gone for %s)'%(r['rowid'],r['fn'],orig_name)
-                print "delete from meta where rowid=%s and sha256='%s';"%(r['rowid'],node.sha256)
+                if r['rowid'] in del_rows:
+                    print '* sql %d already deleted'%(r['rowid'])
+                else:
+                    print '* sql %d deletable (%s gone for %s)'%(r['rowid'],r['fn'],orig_name)
+                    print "delete from meta where rowid=%s and sha256='%s';"%(r['rowid'],node.sha256)
+                del_rows[r['rowid']]='del'
             else:
                 # first item can't be found - remember its rec
                 # XXX hoping if a file was removed, it's not the first recorded
