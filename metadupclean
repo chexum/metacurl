@@ -168,11 +168,11 @@ def metadupclean(db_conn,cwd,fn):
                     # if nlink > 1, we have a copy somewhere else
                     # but unless we can find it in the metadb, don't bother
                     if node.dev <> testnode.dev or node.ino <> testnode.ino:
-                        print '* removable %s (matches %s in %s)'%(newfn,orig_name,orig_path)
+                        print '* removable %s (matches %s in %s)'%(fn,orig_name,orig_path)
                 else:
                     # we have two different names with confirmed content
                     # and the current isn't the original - safe to remove
-                    print '* removable %s (matches %s in %s)'%(fn,orig_name,orig_path)
+                    print '* removable %s (matched %s in %s)'%(fn,orig_name,orig_path)
                 # if we have a record of a missing file
                 # BUT also we have confirmed copies, those can be removed from sql
                 for rowid in err_rows:
@@ -204,6 +204,9 @@ def metadupclean(db_conn,cwd,fn):
                 print '* row %s cant find %s (for %s)'%(r['rowid'],newfn,fn,)
                 err_rows.append(r['rowid'])
 
+    if not orig_stored:
+        print '*',fn,'not in db'
+
     cur.close()
     return
 
@@ -219,6 +222,8 @@ def main(argv=None):
             fn = fn.decode('utf-8')
             if os.path.isfile(fn):
                 metadupclean(db_conn,cwd,fn)
+            else:
+                print '* check %s'%(fn,)
 
 if __name__ == "__main__":
     try:
