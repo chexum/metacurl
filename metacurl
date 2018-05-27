@@ -943,10 +943,11 @@ def main():
             for n in v:
                 curl_args.extend(['--%s' % (i), '%s' % (n, )])
         elif i in [
-                '1_0', '2_0', 'dump_header', 'silent', 'include', 'globoff',
+                'silent', 'include', 'globoff',
+                '1_0', '2_0', 'dump_header',
                 'curl_command', 'debug_summary', 'URL'
         ]:
-            # silent and include will be added always
+            # silent/include/globoff will be added always, the rest will be skipped
             pass
         elif v == True:
             curl_args.append('--%s' % (i.replace('_', '-'), ))
