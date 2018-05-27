@@ -219,7 +219,7 @@ class singlefile(object):
     Retrieve a single file by using curl and inspecting the output
     """
 
-    def __init__(self, url, curlopts, debug=False):
+    def __init__(self, url, curlopts, debug=False, text=False):
         self.error = "not initialized"
         self.progress = "downloading"
         self.orig_url = ""
@@ -238,6 +238,7 @@ class singlefile(object):
         self.refer = None
         self.ext_url = None
         self.ext_args = []
+        self.allow_text = text
 
         if debug:
             ANSI_OFF = ''
@@ -715,11 +716,11 @@ class singlefile(object):
         if self.filename[-4:].upper() == '.PHP':
             sys.stderr.write("!! not saving, .php extension\n")
             return None
-        if self.mimetype and self.mimetype.upper() == 'TEXT/HTML':
+        if self.mimetype and self.mimetype.upper() == 'TEXT/HTML' and not self.allow_text:
             sys.stderr.write("!! not saving, MIME type is %s%s\n" %
                              (self.mimetype, ANSI_OFF))
             return None
-        if self.mimetype and self.mimetype.upper()[0:5] == 'TEXT/':  # and not debug:
+        if self.mimetype and self.mimetype.upper()[0:5] == 'TEXT/' and not self.allow_text:
         # -- https://gnupg.org/ftp/gcrypt/npth/npth-1.5.tar.bz2 -- 200
         # !! not saving, MIME type is text/plain (npth-1.5.tar.bz2)
             if '/raw.githubusercontent' in self.orig_url:
@@ -901,6 +902,7 @@ def main():
         '--1.0', action='store_const', const=False, default=False)
     parser.add_argument('--curl-command', default='curl')
     parser.add_argument('--debug-summary', action='store_true')
+    parser.add_argument('--text', action='store_true')
     # debug?
     parser.add_argument('URL', nargs='+')
     args = parser.parse_args()
@@ -945,6 +947,7 @@ def main():
         elif i in [
                 'silent', 'include', 'globoff',
                 '1_0', '2_0', 'dump_header',
+                'text',
                 'curl_command', 'debug_summary', 'URL'
         ]:
             # silent/include/globoff will be added always, the rest will be skipped
@@ -955,8 +958,8 @@ def main():
             curl_args.extend(['--%s' % (i.replace('_', '-')), '%s' % (v, )])
 
     for url in args.URL:
-        savedfile = singlefile(url,curl_args, args.debug_summary)
-        savedfile.savefile(debug=args.debug_summary)
+        savedfile = singlefile(url, curl_args, args.debug_summary, args.text)
+        savedfile.savefile(debug=args.verbose or args.debug_summary)
 
 
 ###########################################################################
