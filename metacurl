@@ -240,6 +240,9 @@ class singlefile(object):
         self.ext_args = []
         self.allow_text = text
 
+        if url[-5:] == '.html':
+            self.allow_text = True
+
         if debug:
             ANSI_OFF = ''
             ANSI_RED = ''
