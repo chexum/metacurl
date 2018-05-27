@@ -73,7 +73,7 @@ class FnHash(object):
 
     # update - update hashes on xattrs if not present
     def update(self,sha256=None,sha1=None,md5=None):
-        allok = None
+        allok = True
         if use_xattr and (sha256 or sha1 or md5):
             if (sha256 and self.sha256real and not self.sha256attr) or \
                (sha1                       and not self.sha1attr) or \
