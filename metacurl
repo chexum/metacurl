@@ -103,6 +103,9 @@ class http_headerblock(object):
     # content-length - may have several occurrences, but all those must match
     def get_content_length(self):
         a = self.get_all_headers('Content-Length')
+        b = self.get_all_headers('X-Archive-Orig-Content-Length')
+        if len(b)>0:
+            a=a+b
         val = None
 
         try:
@@ -583,20 +586,24 @@ class singlefile(object):
             ## X-ARCHIVE-ORIG-DATE Thu, 16 Oct 2008 15:18:32 GMT
             ## X-ARCHIVE-ORIG-ETAG "2967404-3200700"
             ## X-ARCHIVE-ORIG-LAST-MODIFIED Wed, 06 Feb 2008 03:08:53 GMT
+            ## X-ARCHIVE-ORIG-CONTENT-LENGTH 12062338
 
-            self.stamp = hdr.get_chrono_header('Last-Modified')
             try:
-                z = hdr.get_chrono_header('X-Archive-Orig-Last-Modified')
-                if z:
-                    self.stamp = z
+                self.stamp = hdr.get_chrono_header('Last-Modified')
             except:
-                pass
+                self.stamp = None
+            # this overrides the naive stamp
+            z = hdr.get_chrono_header('X-Archive-Orig-Last-Modified')
+            if z:
+                 self.stamp = z
+            # if it's coming from G* with a higher resolution time
             try:
                 z = float(hdr.get_single_header('X-GOOG-Generation'))
                 if abs(z / 1000000.0 - self.stamp) < 5:
                     self.stamp = z / 1000000.0
             except (ValueError, TypeError):
                 pass
+
             self.stored = int(time.time())
             try:
                 ## save server's idea of the time if not too far off
