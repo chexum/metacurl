@@ -123,7 +123,7 @@ def maybe_int(maybeq):
 # - ensure this record is newer, remove duplicate (newer) record
 # - ensure original file exists, only then remove duplicate file with this name
 
-def metadel(db_conn,cwd,fn):
+def metadupclean(db_conn,cwd,fn):
     cur = db_conn.cursor()
 
     # node (from fn) comes from the command line
@@ -216,9 +216,9 @@ def main(argv=None):
         db_conn.row_factory = sqlite.Row
 	cwd = os.getcwd()
         for fn in argv:
+            fn = fn.decode('utf-8')
             if os.path.isfile(fn):
-                fn = fn.decode('utf-8')
-                metadel(db_conn,cwd,fn)
+                metadupclean(db_conn,cwd,fn)
 
 if __name__ == "__main__":
     try:
