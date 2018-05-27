@@ -714,7 +714,7 @@ class singlefile(object):
         if filename is None:
             filename = self.filename
         try:
-            # XXX even if duplicate, try to keep it recorded
+            # XXX if duplicate by hash - try to not save
             os.stat(filename)
             filename = "%s.%s" % (filename, os.getpid())
             os.stat(filename)
