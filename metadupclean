@@ -144,7 +144,8 @@ def metadel(db_conn,cwd,fn):
     del_rows={}
     for r in cur.fetchall():
         try:
-            print r['rowid'],r['sha256'][:12],r['fn'].encode('utf-8'),r['path'].encode('utf-8')
+            #print r['rowid'],r['sha256'][:12],r['fn'].encode('utf-8'),r['path'].encode('utf-8')
+            pass
         except:
             # should be rare - make sure if it barfed, we knew why
             print '* bad encoding %s'%(r['rowid'],)
@@ -158,7 +159,7 @@ def metadel(db_conn,cwd,fn):
 
         if testnode.sha256 == node.sha256 and testnode.size == node.size:
             if not orig_name:
-                # if we're going by stored/desc, the first recorded is the most authentic
+                # if we're going by stored/desc, the first recorded (testnode) is the most authentic
                 orig_name = testnode.name
                 orig_path =  testnode.path
                 if testnode.name == node.name:
