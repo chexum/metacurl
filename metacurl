@@ -137,7 +137,7 @@ class http_headerblock(object):
             d = dateutil.parser.parse(n,tzinfos=tzi)
             t = int(d.strftime("%s"))
             return t
-        except (ValueError, AttributeError):
+        except (ValueError, AttributeError, TypeError):
             return None
 
     def __str__(self):
