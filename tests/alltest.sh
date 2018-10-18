@@ -8,6 +8,8 @@ allgood=0
 unset FLDB
 unset FLMETADIR
 
+rm -f 030_mimenamenew.html dup.030_mimenamenew.html
+
 for i in [0-9]*txt; do
   b=${i%.txt}
   fnm=$b.out
@@ -29,4 +31,7 @@ for i in [0-9]*txt; do
     echo '--'
   fi
 done
+
+rm -f .meta 030_mimenamenew.html dup.030_mimenamenew.html
+
 exit $allgood
