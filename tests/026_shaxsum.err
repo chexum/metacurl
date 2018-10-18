@@ -1,5 +1,5 @@
 -- downloading 026_shaxsum.out 
-X-CHECKSUM-SHA1 7300f0fd65e286e010125770703e3b9db2d73bfb
+X-CHECKSUM-SHA1 1f5f7515b9543d5e5df52371d177105729d7f341
 
-026_shaxsum.out SHA1 OK (273)
-{"file":"026_shaxsum.out","size":273,"stamp":1484088509,"md5":"5fbcb296eab2c207e80bf3ba8aca2691","sha1":"7300f0fd65e286e010125770703e3b9db2d73bfb","sha256":"360b50a37b91e74b366f382ce571b3e89c4f82a93137ff152d802781dc020a14","githash":null,"mimetype":"application/binary","charset":null,"encoding":null,"url":"026_shaxsum.out","stored":null,"server":"nginx","etag":null}
+026_shaxsum.out SHA1 OK (309)
+{"file":"026_shaxsum.out","size":309,"stamp":1484088509,"md5":"1280922ba65ae15c7a32d9ee37ce1839","sha1":"1f5f7515b9543d5e5df52371d177105729d7f341","sha256":"0701000857613311eaed1787da3486d3cc8ac7dd67cb9b06828ec280acf20565","githash":null,"mimetype":"application/binary","charset":null,"encoding":null,"url":"026_shaxsum.out","stored":null,"server":"nginx","etag":null}

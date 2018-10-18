@@ -1,6 +1,6 @@
 -- downloading 027_allsum.out 
-X-CHECKSUM-SHA1 7300f0fd65e286e010125770703e3b9db2d73bfb
-X-CHECKSUM-MD5 5fbcb296eab2c207e80bf3ba8aca2691
+X-CHECKSUM-SHA1 4a60885a4b2bc3df48d45a96d45cabdaa339f981
+X-CHECKSUM-MD5 8f16b21f9ab2a27b23ec46aee6591f51
 
-027_allsum.out MD5 SHA1 OK (273)
-{"file":"027_allsum.out","size":273,"stamp":1484088509,"md5":"5fbcb296eab2c207e80bf3ba8aca2691","sha1":"7300f0fd65e286e010125770703e3b9db2d73bfb","sha256":"360b50a37b91e74b366f382ce571b3e89c4f82a93137ff152d802781dc020a14","githash":null,"mimetype":"application/binary","charset":null,"encoding":null,"url":"027_allsum.out","stored":null,"server":"nginx","etag":null}
+027_allsum.out MD5 SHA1 OK (309)
+{"file":"027_allsum.out","size":309,"stamp":1484088509,"md5":"8f16b21f9ab2a27b23ec46aee6591f51","sha1":"4a60885a4b2bc3df48d45a96d45cabdaa339f981","sha256":"699abdcbbeef60562d519d11f99833bb02403a67a1f607dcaaa9453aece0ed99","githash":null,"mimetype":"application/binary","charset":null,"encoding":null,"url":"027_allsum.out","stored":null,"server":"nginx","etag":null}

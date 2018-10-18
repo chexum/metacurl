@@ -1,4 +1,4 @@
 -- downloading 021_etagmd5x.out 
 
-021_etagmd5x.out OK (273)
-{"file":"021_etagmd5x.out","size":273,"stamp":1484088509,"md5":"5fbcb296eab2c207e80bf3ba8aca2691","sha1":"7300f0fd65e286e010125770703e3b9db2d73bfb","sha256":"360b50a37b91e74b366f382ce571b3e89c4f82a93137ff152d802781dc020a14","githash":null,"mimetype":"application/binary","charset":null,"encoding":null,"url":"021_etagmd5x.out","stored":null,"server":"nginx","etag":"5fbcb296eab2c207e80bf3ba8aca2691a"}
+021_etagmd5x.out MD5 OK (309)
+{"file":"021_etagmd5x.out","size":309,"stamp":1484088509,"md5":"2ced1f48f4783adb638606731ef77385","sha1":"d2872904573296cacfeb6d198991779ca9d2b8c6","sha256":"0b9833ffbfa4374be0154d599276e88fb8e40f418f15b36c8178257062c5d4e0","githash":null,"mimetype":"application/binary","charset":null,"encoding":null,"url":"021_etagmd5x.out","stored":null,"server":"nginx","etag":"2ced1f48f4783adb638606731ef77385"}

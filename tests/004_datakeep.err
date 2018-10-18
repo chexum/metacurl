@@ -1,4 +1,4 @@
 -- downloading 004_datakeep.out 
 
-004_datakeep.out OK (273)
-{"file":"004_datakeep.out","size":273,"stamp":1484088509,"md5":"5fbcb296eab2c207e80bf3ba8aca2691","sha1":"7300f0fd65e286e010125770703e3b9db2d73bfb","sha256":"360b50a37b91e74b366f382ce571b3e89c4f82a93137ff152d802781dc020a14","githash":null,"mimetype":"application/binary","charset":null,"encoding":null,"url":"004_datakeep.out","stored":null,"server":"nginx","etag":null}
+004_datakeep.out OK (309)
+{"file":"004_datakeep.out","size":309,"stamp":1484088509,"md5":"2851da350362779760320d8a0a3edece","sha1":"d110e8f16361e45b828a2809f8814777a73b3e34","sha256":"5e5a52e8988aeac63c15af83fd9f359daea2edbcbb06741a3747c69f52043ca6","githash":null,"mimetype":"application/binary","charset":null,"encoding":null,"url":"004_datakeep.out","stored":null,"server":"nginx","etag":null}

@@ -1,5 +1,5 @@
 -- downloading 030_mimename.out 
 CONTENT-DISPOSITION inline; filename="030_mimenamenew.html"
 
-030_mimenamenew.html OK (273)
-{"file":"030_mimenamenew.html","size":273,"stamp":1538823600,"md5":"5fbcb296eab2c207e80bf3ba8aca2691","sha1":"7300f0fd65e286e010125770703e3b9db2d73bfb","sha256":"360b50a37b91e74b366f382ce571b3e89c4f82a93137ff152d802781dc020a14","githash":null,"mimetype":"application/binary","charset":null,"encoding":null,"url":"030_mimename.out","stored":null,"server":"nginx","etag":null}
+030_mimenamenew.html OK (309)
+{"file":"030_mimenamenew.html","size":309,"stamp":1538823600,"md5":"7b14e6e9f058adafcb0ce1c781f841b1","sha1":"c621f467563c243a0c05c0a43d920c42941e106e","sha256":"56a8a78f34a726ca35dc2a86aef7ff425cfe3c04fb61d9a959ab89146b8aec33","githash":null,"mimetype":"application/binary","charset":null,"encoding":null,"url":"030_mimename.out","stored":null,"server":"nginx","etag":null}

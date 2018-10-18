@@ -1,6 +1,6 @@
 -- downloading 029_md5bad.out 
-X-CHECKSUM-SHA1 7300f0fd65e286e010125770703e3b9db2d73bfb
-X-CHECKSUM-MD5 5fbcb296eab2c207e80bf3ba8aca2777
+X-CHECKSUM-SHA1 0b5a370e199b6bf296e3020f68c7124290044121
+X-CHECKSUM-MD5 77777777777777777777777777777777
 
-029_md5bad.out BAD MD5 (273)
-{"file":"029_md5bad.out","size":273,"stamp":1484088509,"md5":"5fbcb296eab2c207e80bf3ba8aca2691","sha1":"7300f0fd65e286e010125770703e3b9db2d73bfb","sha256":"360b50a37b91e74b366f382ce571b3e89c4f82a93137ff152d802781dc020a14","githash":null,"mimetype":"application/binary","charset":null,"encoding":null,"url":"029_md5bad.out","stored":null,"server":"nginx","etag":null}
+029_md5bad.out BAD MD5 (309)
+{"file":"029_md5bad.out","size":309,"stamp":1484088509,"md5":"f4449684d6edbc7e170b97f01734c693","sha1":"0b5a370e199b6bf296e3020f68c7124290044121","sha256":"cdc1cc3b14031120bcbfb042277a9c05f2960acee4716d27ba52eaf56713889a","githash":null,"mimetype":"application/binary","charset":null,"encoding":null,"url":"029_md5bad.out","stored":null,"server":"nginx","etag":null}

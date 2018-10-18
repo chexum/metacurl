@@ -1,6 +1,6 @@
 -- downloading 028_shabad.out 
-X-CHECKSUM-SHA1 7300f0fd65e286e010125770703e3b9db2d73777
-X-CHECKSUM-MD5 5fbcb296eab2c207e80bf3ba8aca2691
+X-CHECKSUM-SHA1 7777777777777777777777777777777777777777
+X-CHECKSUM-MD5 8169eb40ceceb20b6b93a0bda3f7488a
 
-028_shabad.out BAD SHA1 (273)
-{"file":"028_shabad.out","size":273,"stamp":1484088509,"md5":"5fbcb296eab2c207e80bf3ba8aca2691","sha1":"7300f0fd65e286e010125770703e3b9db2d73bfb","sha256":"360b50a37b91e74b366f382ce571b3e89c4f82a93137ff152d802781dc020a14","githash":null,"mimetype":"application/binary","charset":null,"encoding":null,"url":"028_shabad.out","stored":null,"server":"nginx","etag":null}
+028_shabad.out BAD SHA1 (309)
+{"file":"028_shabad.out","size":309,"stamp":1484088509,"md5":"8169eb40ceceb20b6b93a0bda3f7488a","sha1":"5058b330e3a49c854e30b6744828573416125f3f","sha256":"5c4cdd7a49be2ab3457eadca1db715a7d168f3e7b0590975aba75eebd3bb0d93","githash":null,"mimetype":"application/binary","charset":null,"encoding":null,"url":"028_shabad.out","stored":null,"server":"nginx","etag":null}

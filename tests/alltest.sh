@@ -8,7 +8,7 @@ allgood=0
 unset FLDB
 unset FLMETADIR
 
-rm -f 030_mimenamenew.html dup.030_mimenamenew.html
+rm -f .meta 030_*.html dup.030_*.html 032_*.html dup.032_*.html
 
 for i in [0-9]*txt; do
   b=${i%.txt}
@@ -32,6 +32,6 @@ for i in [0-9]*txt; do
   fi
 done
 
-rm -f .meta 030_mimenamenew.html dup.030_mimenamenew.html
+rm -f .meta 030_*.html dup.030_*.html 032_*.html dup.032_*.html
 
 exit $allgood

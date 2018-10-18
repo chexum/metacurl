@@ -1,5 +1,5 @@
 -- downloading 024_md5xsum.out 
-X-CHECKSUM-MD5 5fbcb296eab2c207e80bf3ba8aca2690
+X-CHECKSUM-MD5 77777777777777777777777777777777
 
-024_md5xsum.out BAD MD5 (273)
-{"file":"024_md5xsum.out","size":273,"stamp":1484088509,"md5":"5fbcb296eab2c207e80bf3ba8aca2691","sha1":"7300f0fd65e286e010125770703e3b9db2d73bfb","sha256":"360b50a37b91e74b366f382ce571b3e89c4f82a93137ff152d802781dc020a14","githash":null,"mimetype":"application/binary","charset":null,"encoding":null,"url":"024_md5xsum.out","stored":null,"server":"nginx","etag":null}
+024_md5xsum.out BAD MD5 (309)
+{"file":"024_md5xsum.out","size":309,"stamp":1484088509,"md5":"45315abe635b8bbd78b0aec346343ae7","sha1":"567c48924f8793f6637d41dd9589847e73cffcd7","sha256":"192eabf96801d959a62b5bc76cadcf249a5f1c8a823f6f80040906f56c2c592d","githash":null,"mimetype":"application/binary","charset":null,"encoding":null,"url":"024_md5xsum.out","stored":null,"server":"nginx","etag":null}

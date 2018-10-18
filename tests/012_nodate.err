@@ -1,4 +1,4 @@
 -- downloading 012_nodate.out 
 
-012_nodate.out OK (273)
-{"file":"012_nodate.out","size":273,"stamp":null,"md5":"5fbcb296eab2c207e80bf3ba8aca2691","sha1":"7300f0fd65e286e010125770703e3b9db2d73bfb","sha256":"360b50a37b91e74b366f382ce571b3e89c4f82a93137ff152d802781dc020a14","githash":"84420b4b5834e364b419a4c6d7ac4d8e68f6c81c","mimetype":"application/binary","charset":null,"encoding":null,"url":"012_nodate.out","stored":null,"server":"nginx","etag":null}
+012_nodate.out OK (309)
+{"file":"012_nodate.out","size":309,"stamp":null,"md5":"e37ac92a40daf1a2cbc29e1da416b734","sha1":"f5d5274a6d769fb0cab39cd7537c58ef044af080","sha256":"ffc130909406767b637d8e0a545de607669cb0158811326c02b114a481b65107","githash":"d90bbf26683ecf64a077be65369d8bf3695197a8","mimetype":"application/binary","charset":null,"encoding":null,"url":"012_nodate.out","stored":null,"server":"nginx","etag":null}

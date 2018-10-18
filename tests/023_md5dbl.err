@@ -1,6 +1,6 @@
 -- downloading 023_md5dbl.out 
-CONTENT-MD5 X7yyluqywgfoC/O6isomkQ==
+CONTENT-MD5 8/lsGcuBTrsEYGlef8FMcw==
 !! different MD5 digests to check
 
-023_md5dbl.out MD5 OK (273)
-{"file":"023_md5dbl.out","size":273,"stamp":1484088509,"md5":"5fbcb296eab2c207e80bf3ba8aca2691","sha1":"7300f0fd65e286e010125770703e3b9db2d73bfb","sha256":"360b50a37b91e74b366f382ce571b3e89c4f82a93137ff152d802781dc020a14","githash":null,"mimetype":"application/binary","charset":null,"encoding":null,"url":"023_md5dbl.out","stored":null,"server":"nginx","etag":"5fbcb296eab2c207e80bf3ba8aca2690"}
+023_md5dbl.out MD5 OK (309)
+{"file":"023_md5dbl.out","size":309,"stamp":1484088509,"md5":"f3f96c19cb814ebb0460695e7fc14c73","sha1":"0df7a6415adb2232bcc72d6dfdf6339006949445","sha256":"8581345e77e76e9dc3a4166b21ef999177d310dda00d490b6c81a2f6e376a1c7","githash":null,"mimetype":"application/binary","charset":null,"encoding":null,"url":"023_md5dbl.out","stored":null,"server":"nginx","etag":"77777777777777777777777777777777"}
