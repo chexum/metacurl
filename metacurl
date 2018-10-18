@@ -303,6 +303,8 @@ class singlefile(object):
         self.filename = hunk
         self.mimetype = None
 
+        conn = None
+
         # initially, cursor is at the start of the line
         # progress is expected to keep the cursor mid-line (right after stats)
         while True:
@@ -336,8 +338,8 @@ class singlefile(object):
                 u = urlparse.urlparse(url)
                 # ParseResult(scheme='ftp', netloc='atrey.karlin.mff.cuni.cz:21', path='/pub/linux/pci/pciutils-3.5.6.tar.gz.sign', params='', query='', fragment='')
                 try:
-                    conn = ftplib.FTP(u.netloc)
-                    res = conn.login()
+                    ftpconn = ftplib.FTP(u.netloc)
+                    res = ftpconn.login()
                     print '* ftp',res.split("\n")[0]
                     # 230 Login successful.
                     if res[0] == '2':
@@ -345,15 +347,15 @@ class singlefile(object):
                         ftpconv = ftpconv + 'HTTP/1.0 200 ' + firstline + '\r\n'
 
                     # 550 SIZE not allowed in ASCII mode
-                    conn.voidcmd('TYPE I')
+                    ftpconn.voidcmd('TYPE I')
 
-                    ftpsz = conn.size(u.path)
-#                    res=conn.sendcmd("SIZE %s"%(u.path))
+                    ftpsz = ftpconn.size(u.path)
+#                    res=ftpconn.sendcmd("SIZE %s"%(u.path))
                     print '* ftp size 213',ftpsz
                     # 213 811
                     #if res[0] == '2':
                     ftpconv = ftpconv + 'Content-Length: ' + str(ftpsz) + '\r\n'
-                    ftptm=conn.sendcmd("MDTM %s"%(u.path))
+                    ftptm=ftpconn.sendcmd("MDTM %s"%(u.path))
                     print '* ftp time',ftptm
                     # 213 20171117140512
                     if ftptm[0] == '2':
@@ -362,7 +364,8 @@ class singlefile(object):
                         z = datetime.datetime(int(matchtm.group(1)),int(matchtm.group(2)),int(matchtm.group(3)),
                                 int(matchtm.group(4)),int(matchtm.group(5)),int(matchtm.group(6)),0,None)
                         ftpconv = ftpconv + 'Last-Modified: ' + z.strftime("%a, %d %b %Y %T GMT") + '\r\n'
-                    conn.quit()
+                    ftpconn.quit()
+                    ftpconn = None
                     ftpconv = ftpconv + '\r\n'
                 except ftplib.all_errors, e:
                     print '* ftp',e
