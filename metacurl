@@ -272,15 +272,15 @@ class singlefile(object):
         m = re.search('(md5|sha1|sha256)[A-Za-z]*=([A-Za-z0-9+/=]+)', frag, re.I)
         if m:
             if m.group(1).upper() == 'MD5':
-                self.expected_md5 = m.group(2)
+                self.expected_md5 = m.group(2).lower()
             elif m.group(1).upper() == 'SHA1':
-                self.expected_sha1 = m.group(2)
+                self.expected_sha1 = m.group(2).lower()
             elif m.group(1).upper() == 'SHA256':
                 hash = m.group(2)
                 if len(hash)<64:
-                    self.expected_sha256=binascii.hexlify(base64.b64decode(hash))
+                    self.expected_sha256=binascii.hexlify(base64.b64decode(hash)).lower()
                 else:
-                    self.expected_sha256=hash
+                    self.expected_sha256=hash.lower()
 
         # save original url and extract possible filename (without parameters)
         if not self.orig_url:
@@ -288,7 +288,8 @@ class singlefile(object):
         self.ext_url = url
 
         parts = url.split('?', 1)[0].split('/')
-        if parts[-1] == '' or parts[-1][0] in '&?#' or parts[-1] == 'download':
+        # [:8] is new XXX
+        if parts[-1] == '' or parts[-1][0] in '&?#' or parts[-1][:8] == 'download':
             hunk = parts[-2]
         else:
             hunk = parts[-1]
@@ -464,7 +465,7 @@ class singlefile(object):
             # X-CHECKSUM-SHA1 892bfb3e97074a61123b3b2d7caa2db112750864
             # X-CHECKSUM-MD5 7587a618197a065eac4a453d173d4ed6
             if 'X-CHECKSUM-SHA1' in hdr.headers:
-                d = hdr.get_single_header('X-Checksum-SHA1')
+                d = hdr.get_single_header('X-Checksum-SHA1').lower()
                 if self.expected_sha1:
                     if self.expected_sha1 != d:
                         sys.stderr.write(
@@ -473,7 +474,7 @@ class singlefile(object):
                     self.expected_sha1 = d
 
             if 'X-CHECKSUM-MD5' in hdr.headers:
-                d = hdr.get_single_header('X-Checksum-MD5')
+                d = hdr.get_single_header('X-Checksum-MD5').lower()
                 if self.expected_md5:
                     if self.expected_md5 != d:
                         sys.stderr.write("!! different MD5 digests to check\n")
@@ -481,9 +482,13 @@ class singlefile(object):
                     self.expected_md5 = d
 
             ## http://download.system-cfg.com/f.php?h=2Z0Khs23&d=1
+            ## CONTENT-MD5 6c3156d38333f715ad5cc0ed73feba19
             if 'CONTENT-MD5' in hdr.headers:
                 d = hdr.get_single_header('Content-MD5')
-                dig = binascii.hexlify(base64.b64decode(d))
+                if len(d) == 32:
+                    dig = d.lower()
+                else:
+                    dig = binascii.hexlify(base64.b64decode(d)).lower()
                 if self.expected_md5:
                     if self.expected_md5 != dig:
                         sys.stderr.write("!! different MD5 digests to check\n")
