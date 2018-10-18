@@ -13,6 +13,7 @@ import base64, binascii
 import urllib
 import HTMLParser
 import StringIO
+import codecs
 
 ###########################################################################
 ###########################################################################
@@ -440,9 +441,10 @@ class singlefile(object):
                         arr = l[3].strip().split("'")
                         if len(arr) > 2:
                             z = arr[2].strip('\x27\x22\x09\x20')
+                    z = bytearray(z).decode('utf-8')
                     if z:
                         self.filename = z
-            except (KeyError, TypeError, AttributeError):
+            except (KeyError, TypeError, AttributeError,UnicodeError):
                 # AttributeError when filename is not specified (None)
                 pass
 
@@ -822,8 +824,8 @@ class singlefile(object):
         except (ValueError, AttributeError):
             pass
 
-        with open('.meta', 'a') as f:
-            f.write("\t".join([str(i) if i else '?' for i in \
+        with codecs.open('.meta', encoding='utf-8', mode='a') as f:
+            f.write("\t".join([unicode(i) if i else '?' for i in \
               [self.filename,self.filesize,safestamp,self.hashes[0],self.mimetype,self.encoding,self.orig_url,self.stored,self.server,self.etag]])+"\n")
             f.close()
 
@@ -833,7 +835,7 @@ class singlefile(object):
             year = time.gmtime(self.stored).tm_year
         except TypeError:
             year = time.time().tm_year
-        d={'file':self.filename,'size':self.filesize,'stamp':safestamp,\
+        d={'file':unicode(self.filename),'size':self.filesize,'stamp':safestamp,\
         'md5':self.hashes[0],'sha1':self.hashes[1],'sha256':self.hashes[2],\
         'githash':self.hashes[3],'mimetype':self.mimetype,'charset':self.charset,\
         'encoding':self.encoding,'url':self.orig_url,\
@@ -857,10 +859,6 @@ class singlefile(object):
             conn, cur = None, None
 
         if conn:
-            try:
-                self.filename = bytearray(self.filename).decode('utf-8')
-            except:
-                pass
             conn.execute("""
             insert into meta
             (path,fn,size,stamp,md5,sha1,sha256,githash,mimetype,mimecs,mimeenc,url,stored,server,etag)

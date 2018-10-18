@@ -10,6 +10,8 @@ unset FLMETADIR
 
 rm -f .meta 030_*.html dup.030_*.html 032_*.html dup.032_*.html
 
+export PYTHONIOENCODING=utf8
+
 for i in [0-9]*txt; do
   b=${i%.txt}
   fnm=$b.out
@@ -32,6 +34,6 @@ for i in [0-9]*txt; do
   fi
 done
 
-rm -f .meta 030_*.html dup.030_*.html 032_*.html dup.032_*.html
+rm -f 030_*.html dup.030_*.html 032_*.html dup.032_*.html
 
 exit $allgood

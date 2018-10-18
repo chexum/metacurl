@@ -5,7 +5,7 @@ Last-Modified: Sat, 06 Oct 2018 11:00:00 GMT
 Expires: Sat, 06 Oct 2018 22:00:00 GMT
 Cache-Control: max-age=3600
 Strict-Transport-Security: max-age=180000
-CONTENT-DISPOSITION: inline; filename="032_mimename’.html"
+CONTENT-DISPOSITION: inline; filename="032_mimename's-’s®.html"
 Server: nginx
 
 <?xml version="1.0" encoding="UTF-8" ?>
