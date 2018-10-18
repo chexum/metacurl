@@ -844,11 +844,15 @@ class singlefile(object):
             conn, cur = None, None
 
         if conn:
+            try:
+                self.filename = bytearray(self.filename).decode('utf-8')
+            except:
+                pass
             conn.execute("""
             insert into meta
             (path,fn,size,stamp,md5,sha1,sha256,githash,mimetype,mimecs,mimeenc,url,stored,server,etag)
             values(?,?,?,datetime(?,'unixepoch'),?,?,?,?,?,?,?,?,datetime(?,'unixepoch'),?,?)""",\
-            (os.getcwd(),self.filename,self.filesize,self.stamp,\
+            (os.getcwd(),unicode(self.filename),self.filesize,self.stamp,\
             self.hashes[0],self.hashes[1],self.hashes[2],self.hashes[3],\
             self.mimetype,self.charset,self.encoding,self.orig_url,\
             self.stored,self.server,self.etag))
