@@ -1,0 +1,20 @@
+HTTP/1.1 200 OK
+Date: Sat, 27 Oct 2018 20:40:45 GMT
+Content-Type: application/binary
+Last-Modified: Sat, 27 Oct 2018 20:30:00 GMT
+Expires: Sat, 27 Oct 2018 23:00:00 GMT
+Cache-Control: max-age=3600
+Strict-Transport-Security: max-age=180000
+CONTENT-DISPOSITION: inline; filename="032_this;that;too.html"
+Server: nginx
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<title>fdd92846-256d-494c-b747-284a4d16a406</title>
+</head>
+<body>
+<p>
+</p>
+</body>

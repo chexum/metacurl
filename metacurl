@@ -35,10 +35,40 @@ class MetaFLJSONEncoder(json.JSONEncoder):
         else:
             return json.JSONEncoder.encode(self, o)
 
-
 ###########################################################################
 ###########################################################################
 
+def tokensplit(s):
+    w = s.strip(b'\x20\x09')
+    t = []
+    while len(w)>0:
+        m=re.match('^[\x20\x09]*([A-Za-z0-9\x21\x23\x24\x25\x26\x27\x2a\x2b\x2d\x2e\x5e\x5f\x60\x7c\x7e]+)[\x20\x09]*(;|=|$)[\x20\x09]*(.*?)$'
+,w)
+
+        if m:
+            # end of token (or separated by ; from the next)
+            if m.group(2)==';' or m.group(2) == '':
+                t.append(m.group(1))
+                w=m.group(3)
+            else:
+                (a,b)=(m.group(1),m.group(3))
+                if b[0]=='"':
+                    begp=1
+                    endp=b.find('"',1)
+                else:
+                    begp=0
+                    endp=b.find(';')
+                if endp>=0:
+                    t.append("%s=%s"%(a,b[begp:endp]))
+                    w=b[endp+1:]
+                else:
+                    t.append("%s=%s"%(a,b[begp:]))
+                    w=''
+        else:
+            t.append('%s'%(w,))
+            w=''
+
+    return t
 
 class http_headerblock(object):
     """
@@ -65,7 +95,9 @@ class http_headerblock(object):
         res = []
         try:
             for h in self.headers[name.upper()]:
-                tokens = [t.strip('\x20\x09') for t in h.split(';')]
+                # review rfc6266
+                # handle semicolons in quotes ;token="what;ever"
+                tokens = tokensplit(h)
                 line = []
                 for t in tokens:
                     z = t.split('=', 1)

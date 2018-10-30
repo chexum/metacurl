@@ -1,0 +1,5 @@
+-- downloading 033_semicolname.out 
+CONTENT-DISPOSITION inline; filename="032_this;that;too.html"
+
+032_this;that;too.html OK (309)
+{"file":"032_this;that;too.html","size":309,"stamp":1540672200,"md5":"017ef3ff4b519503d2af671151716b08","sha1":"44337b2bc8b2891e862689509942a60d41266249","sha256":"bf760efcde0417b455152abcb815557a9119545f40ba379ed96d2d0cd546692d","githash":null,"mimetype":"application/binary","charset":null,"encoding":null,"url":"033_semicolname.out","stored":null,"server":"nginx","etag":null}
