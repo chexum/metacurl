@@ -786,7 +786,7 @@ class singlefile(object):
             elif self.filename.split('.')[-1].upper() == 'PDF':
                 self.mimetype='application/pdf'
             elif self.filename.split('.')[-1].upper(
-            ) not in ['SIG', 'SIGN', 'PUB', 'ASC', 'TXT', 'C', 'S', 'ASM', 'MD5','SHA1','SHA256','SHA512','DIFF','PATCH']:
+            ) not in ['SIG', 'SIGN', 'PUB', 'ASC', 'TXT', 'C', 'H', 'CSV', 'S', 'ASM', 'MD5','SHA1','SHA256','SHA512','DIFF','PATCH']:
                 sys.stderr.write("!! not saving, MIME type is %s (%s) %s\n" %
                                  (self.mimetype, self.filename, ANSI_OFF))
                 return None
