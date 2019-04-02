@@ -1,0 +1,88 @@
+#!/usr/bin/env python
+
+import hashlib
+import os
+import os.path
+import platform
+import re
+import sys
+import sqlite3
+import time
+
+FL = 'FLMETADIR'
+
+try:
+    import xattr
+    use_xattr=1
+except ImportError,e:
+    use_xattr=None
+
+def grepmd5(fname,md5):
+    if not os.path.isfile(fname):
+        return
+
+    hdr = '%s:'%(fname,)
+
+    with open(fname) as f:
+        for l in f:
+            if md5 in l:
+                if hdr:
+                    print hdr;hdr=None
+                print l,
+
+
+def metadel(db_conn,md5):
+    cur = db_conn.cursor()
+    cur.execute('select rowid,md5,size,path,fn from meta where md5=?',(md5,))
+    hdr = '$FLDB:'
+    for x in cur.fetchall():
+        (rowid,fn)=(x['rowid'],x['fn'])
+        quoted_fn = fn.replace("'","''").replace('\\','\\\\')
+        if hdr:
+            print hdr;hdr=None
+        print 'delete from meta where rowid=%d and md5=\'%s\' and fn=\'%s\';'%(rowid,md5,quoted_fn,)
+
+def main(argv=None):
+    argv = argv or sys.argv[1:]
+
+    db_file = os.environ['FLDB']
+    cwd = os.getcwd()
+    m = re.search('(^/.*/[Vv]ault/)',cwd)
+    if m:
+        vault_path=m.group(1)
+    else:
+        vault_path=None
+
+    db_conn = None
+
+    for k in argv:
+        try:
+            h = hashlib.new('md5')
+            with open(k) as f:
+                for b in f:
+                    h.update(b)
+            h_md5 = h.hexdigest()
+
+            if not db_conn:
+                db_conn = sqlite3.connect(db_file)
+            if not db_conn:
+                print "! no db file %s"%(db_file,)
+                break
+            else:
+                db_conn.row_factory = sqlite3.Row
+
+            metadel(db_conn,h_md5)
+            grepmd5('.meta',
+                    '\t%s\t'%(h_md5,))
+            # year of stored()
+            grepmd5('%s/%04d-%s.meta'%(os.environ[FL], time.gmtime(time.time()).tm_year, platform.node()[0:6],),
+                    '"%s"'%(h_md5,))
+        except IOError as e:
+            print "! %s"%(e,)
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except KeyboardInterrupt:
+        print "^C",
+        sys.exit(1)
