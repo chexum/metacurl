@@ -1,0 +1,193 @@
+#!/usr/bin/env python
+
+import hashlib
+import os
+import os.path
+import platform
+import re
+import sys
+import subprocess
+import sqlite3
+import time
+import tempfile
+import json
+
+FL = 'FLMETADIR'
+
+try:
+    import xattr
+    use_xattr=1
+except ImportError,e:
+    use_xattr=None
+
+colarray=["rowid","path","fn","size","stamp","md5","sha1","sha256","githash","sig","tz","geo","mimetype","mimecs","mimeenc","url","stored","server","etag"]
+
+def stringescape(val):
+    if val=='?' or val==None:
+        return 'null'
+    try:
+        v = int(val)
+        return v
+    except ValueError:
+        return str(val).replace('\\','\\\\').replace('"','\"').replace("'",'\\\'').join(['"','"'])
+
+
+def metaedit(rowdict):
+    EDITOR = os.environ.get('EDITOR','vim')
+    (fd,tmpnam) = tempfile.mkstemp(suffix='.json')
+
+    toedit={}
+    srcvec={}
+
+    if fd:
+        for k in colarray:
+            try:
+                v = rowdict[k]
+            except:
+                v = None
+
+            if v==None or v=='?':
+                srcvec[k] = None
+                x = 'null'
+            else:
+                try:
+                    x = int(v)
+                    srcvec[k] = x
+                except ValueError:
+                    x = stringescape(v)
+                    srcvec[k] = v
+            toedit[k]=x
+
+        with os.fdopen(fd,'w+') as wfd:
+            firstc='{';
+            for k in colarray:
+                tab=(9-len(k))*" "
+                print >>wfd,"%s\t\"%s\":%s%s"%(firstc,k,tab,toedit[k])
+                firstc=','
+            print >>wfd,"}"
+
+        subprocess.call([EDITOR, tmpnam])
+
+        # update meta set f=new..., where f=old..AND
+        # insert into meta (col...) values (new...)
+
+        with open(tmpnam,'r') as rfd:
+            newjson = json.load(rfd)
+            if newjson['rowid'] <> srcvec['rowid']:
+                print "# what to do?"
+                for k in colarray:
+                    if j[k] != srcvec[k]:
+                        print '#',k,srcvec[k],'>>',j[k]
+                print 
+            elif newjson['rowid'] == None:
+                cols=[]
+                vals=[]
+                for k in colarray:
+                    if newjson[k] != None:
+                        cols.append(k)
+                        vals.append(str(stringescape(newjson[k])))
+                print "insert into meta (%s) values (%s);"%(','.join(cols),','.join(vals))
+            else:
+                wherecond=["%s = %s"%('rowid',srcvec['rowid'])]
+                setvals=[]
+                for k in colarray:
+                    if newjson[k] != srcvec[k]:
+                        if srcvec[k] == None:
+                            wherecond.append("%s is null"%(k))
+                        else:
+                            wherecond.append("%s = %s"%(k,stringescape(srcvec[k])))
+                        setvals.append("%s = %s"%(k,stringescape(newjson[k])))
+                if len(setvals)>0:
+                    print "update meta set %s where %s;"%(",".join(setvals)," and ".join(wherecond))
+                else:
+                    print "# no update necessary"
+
+        os.unlink(tmpnam)
+
+def metakeep(db_file,fn):
+    try:
+        db_conn = None
+
+        ### try to access file first, but do not delay checking the database either
+        s = os.stat(fn)
+        with open(fn) as f:
+            if not db_conn:
+                db_conn = sqlite3.connect(db_file)
+            if not db_conn:
+                print "! no db file %s"%(db_file,)
+                return
+            else:
+                pass
+                db_conn.row_factory = sqlite3.Row
+
+            orig={}
+            orig['size']=s.st_size
+            hash_md5 = hashlib.md5()
+            hash_sha1 = hashlib.sha1()
+            hash_sha256 = hashlib.sha256()
+            hash_githash = hashlib.sha1()
+            hash_githash.update(b"blob %d\n" % (s.st_size,))
+            for b in f:
+                hash_md5.update(b)
+                hash_sha1.update(b)
+                hash_sha256.update(b)
+                hash_githash.update(b)
+            orig['md5']=hash_md5.hexdigest()
+            orig['sha1']=hash_sha1.hexdigest()
+            orig['sha256']=hash_sha256.hexdigest()
+            orig['githash']=hash_githash.hexdigest()
+            (orig['path'],orig['fn'])=os.path.split(os.path.realpath(fn))
+
+            # stored/stamp
+
+            # fill defaults
+            for k in colarray:
+                if not k in orig:
+                    orig[k] = None
+
+            cur = db_conn.cursor()
+            cur.execute('select rowid,* from meta where md5=? or sha1=? or githash=? or sha256=?',(orig['md5'],orig['sha1'],orig['githash'],orig['sha256']))
+            edited=0
+            for r in cur.fetchall():
+                metaedit(r);
+                edited=edited+1
+
+            if edited == 0:
+                metaedit(orig)
+
+            ### XXX compare all (xattr/db/file)
+
+    except (IOError,OSError) as e:
+        print "! %s"%(e,)
+
+def main(argv=None):
+    argv = argv or sys.argv[1:]
+
+    db_file = os.environ['FLDB']
+    cwd = os.getcwd()
+    m = re.search('(^/.*/[Vv]ault/)',cwd)
+    if m:
+        vault_path=m.group(1)
+    else:
+        vault_path=None
+
+    db_conn = None
+
+    for k in argv:
+        metakeep(db_file,k)
+
+#    with sqlite.connect(db_file) as db_conn:
+#        db_conn.row_factory = sqlite.Row
+#        for fn in argv:
+#            fn = fn.decode('utf-8')
+##            if os.path.isfile(fn):
+#                metadupclean(db_conn,cwd,fn,vault_path)
+#            else:
+#                print '* check %s'%(fn,)
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except KeyboardInterrupt:
+        print "^C",
+        sys.exit(1)
