@@ -138,6 +138,9 @@ def metakeep(db_file,fn):
             orig['githash']=hash_githash.hexdigest()
             (orig['path'],orig['fn'])=os.path.split(os.path.realpath(fn))
 
+            orig['stamp']=time.strftime("%Y-%m-%d %H:%M:%S",time.gmtime(s.st_mtime))
+            orig['stored']=time.strftime("%Y-%m-%d %H:%M:%S",time.gmtime(time.time()))
+
             # stored/stamp
 
             # fill defaults
