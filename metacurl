@@ -35,6 +35,8 @@ def set_extended_attr(fno,aname,avalue):
 
 # environment name for user's meta filelist directory
 FL = 'FLMETADIR'
+METAFILE = 'METAFILE'
+METACOOKIES = 'METACOOKIES'
 N_ALL = [
     'file', 'size', 'stamp', 'md5', 'sha1', 'sha256', 'githash', 'mimetype',
     'charset', 'encoding', 'url', 'stored', 'server', 'etag'
@@ -376,6 +378,14 @@ class singlefile(object):
                     '-H',
                     'Referer: %s' % (self.refer),
                 ])
+
+            if METACOOKIES in os.environ:
+                cookie=os.environ[METACOOKIES]
+                all_args.append('-b')
+                all_args.append(cookie)
+                all_args.append('-c')
+                all_args.append(cookie)
+
             all_args.append('--')
             all_args.append(url)
 
@@ -883,7 +893,16 @@ class singlefile(object):
         except (ValueError, AttributeError):
             pass
 
-        with codecs.open('.meta', encoding='utf-8', mode='a') as f:
+        try:
+          self.filename = self.filename.decode('utf-8')
+        except (UnicodeError):
+          pass
+
+        metafile = '.meta'
+        if not os.path.isfile(metafile) and METAFILE in os.environ:
+            metafile = os.environ[METAFILE]
+
+        with codecs.open(metafile, encoding='utf-8', mode='a') as f:
             f.write("\t".join([unicode(i) if i else '?' for i in \
               [self.filename,self.filesize,safestamp,self.hashes[0],self.mimetype,self.encoding,self.orig_url,self.stored,self.server,self.etag]])+"\n")
             f.close()
