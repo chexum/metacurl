@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 # vim: ts=8 sw=4 sta sts=4 ai
 
-from pysqlite2 import dbapi2 as sqlite
+#rom pysqlite2 import dbapi2 as sqlite
+import sqlite3 as sqlite
 #from optparse import OptionParser
 import sys
 import os
@@ -64,7 +65,8 @@ class FnHash(object):
                             f_sha256.update(b)
                         self.sha256real = f_sha256.hexdigest()
                         self.sha256 = self.sha256real
-        except IOError,e:
+        except IOError:
+            ## XXX
             pass
 
     # XXX reload - refresh sha256 if not loaded
@@ -123,7 +125,7 @@ def maybe_int(maybeq):
 # - ensure this record is newer, remove duplicate (newer) record
 # - ensure original file exists, only then remove duplicate file with this name
 
-def metadupclean(db_conn,cwd,fn):
+def metadupclean(db_conn,cwd,fn,vault_path=None):
     cur = db_conn.cursor()
 
     # node (from fn) comes from the command line
@@ -207,6 +209,17 @@ def metadupclean(db_conn,cwd,fn):
     if not orig_stored:
         print '*',fn,'not in db'
 
+    # XXX dup name check here?
+    cur.execute("select rowid,fn,path,md5 from meta where fn like ?",(fn,))
+    warned={}
+    for r in cur.fetchall():
+        if fn != r[1]:
+            if r[1] not in warned: warned[r[1]]=[]
+            warned[r[1]].append(r[2])
+    for n in warned:
+        for p in warned[n]:
+            print '* %s name similar to %s/%s'%(fn,p,n)
+
     cur.close()
     return
 
@@ -214,14 +227,14 @@ def main(argv=None):
     argv = argv or sys.argv[1:]
 
     db_file = os.environ['FLDB']
+    # XXX customize vault_path if needed
 
     with sqlite.connect(db_file) as db_conn:
         db_conn.row_factory = sqlite.Row
-	cwd = os.getcwd()
         for fn in argv:
             fn = fn.decode('utf-8')
             if os.path.isfile(fn):
-                metadupclean(db_conn,cwd,fn)
+                metadupclean(db_conn,cwd,fn,vault_path)
             else:
                 print '* check %s'%(fn,)
 
