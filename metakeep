@@ -141,7 +141,10 @@ def metakeep(db_file,fn):
             orig['stamp']=time.strftime("%Y-%m-%d %H:%M:%S",time.gmtime(s.st_mtime))
             orig['stored']=time.strftime("%Y-%m-%d %H:%M:%S",time.gmtime(time.time()))
 
-            # stored/stamp
+            # 2.7
+            detected_mt=subprocess.check_output(['file','-b','--mime-type','--',fn]).strip("\n")
+            if '/' in detected_mt:
+                orig["mimetype"]=detected_mt.strip("\r\n")
 
             # fill defaults
             for k in colarray:
