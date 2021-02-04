@@ -18,6 +18,21 @@ import codecs
 ###########################################################################
 ###########################################################################
 
+# nonessential module
+try:
+    import xattr
+except ImportError:
+    pass # just ignore it for now
+
+def set_extended_attr(fno,aname,avalue):
+    try:
+        # XXX This is for Linux, OS X has a different module
+        # and not with each installed python version - need to figure it out
+        xattr._fsetxattr(fno,'user.%s'%(aname,),avalue.encode('utf-8'))
+    except:
+        print "fsetxattr %s failed"%(aname,)
+        pass
+
 # environment name for user's meta filelist directory
 FL = 'FLMETADIR'
 N_ALL = [
@@ -590,6 +605,7 @@ class singlefile(object):
                 f = tempfile.mkstemp(prefix='.dl_', dir='.')
             self.tmpname = f[1]
             f = os.fdopen(f[0], "w")
+            set_extended_attr(f.fileno(),'origurl',self.orig_url)
 
             ## TODO progress
             counted_size, i, x = 0, 0, 99
@@ -620,6 +636,10 @@ class singlefile(object):
                 hash_sha1.update(buf)
                 hash_sha256.update(buf)
                 if hash_githash: hash_githash.update(buf)
+
+            # XXX closing - set xattr before, while we have the handle
+            # XXX needs to get the hashes finalised before too
+            # set_extended_attr(f.fileno(),'origurl',self.orig_url) # XXX xattr
             f.close()
 
             ## need to have the timestamp before renaming
@@ -807,6 +827,8 @@ class singlefile(object):
         self.tmpname = None
         bad = []
         good = []
+
+        # XXX xattr
 
         # check digests
         if self.expected_md5:
