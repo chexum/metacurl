@@ -1,0 +1,138 @@
+#!/usr/bin/env python
+# vim: ts=8 sw=4 sta sts=4 ai
+
+from __future__ import print_function
+#from pysqlite2 import dbapi2 as sqlite
+import sqlite3 as sqlite
+#from optparse import OptionParser
+import sys
+import os
+import hashlib
+import re
+
+def appfind(db_conn,arg,max_rows=11,try_hash_min=6):
+
+    if max_rows == -1: max_rows = 1000;
+
+    cur = db_conn.cursor();
+    if re.search('^[0-9a-fA-F]{%d,}$'%(try_hash_min,),arg):
+        cur.execute("select path,fn,md5,sha1,sha256 from meta where md5||':'||sha1||':'||sha256 like ? order by stamp desc limit ?",('%'+arg+'%',max_rows,))
+    else:
+        cur.execute('select path,fn,md5,sha1,sha256 from meta where fn like ? order by stamp desc limit ?',(arg+'%',max_rows,))
+
+        result = cur.fetchall()[0:max_rows]
+
+    cur.close()
+    return result
+
+def maybe_int(maybeq):
+    try:
+        return int(maybeq)
+    except (ValueError,TypeError):
+        return 0 if maybeq=='' or maybeq=='?' or maybeq is None else maybeq
+
+def metaloc(db_conn,cwd,fn):
+    cur = db_conn.cursor()
+
+    statinfo = os.stat(fn)
+    where={}; file_size=statinfo.st_size; file_time=statinfo.st_mtime;
+
+    cur.execute("select rowid,fn,path,md5,githash,size,strftime('%s',stamp) from meta where fn = ?",(fn,))
+    # XXX discover case-different names
+    for f in cur.fetchall():
+        # XXX multiple
+        where[f[2]]=fn
+
+
+    # if multiple locations OR single but different location
+    # or different size or different time
+    # or needs githash to recompute
+    if len(where) != 1 or cwd not in where or \
+            maybe_int(file_size) != maybe_int(f[4]) or \
+            maybe_int(file_time) < 3601 or maybe_int(f[5]) != maybe_int(file_time) or \
+            f[3] is None:
+        newmd5 = hashlib.new('md5')
+        newsha1 = hashlib.new('sha1')
+        newgith = hashlib.new('sha1')
+        newgith.update(b"blob %d\0"%(file_size,))
+
+    with open(fn) as f:
+        for b in f:
+            newmd5.update(b)
+            newsha1.update(b)
+            newgith.update(b)
+
+        file_md5 = newmd5.hexdigest()
+        file_sha1 = newsha1.hexdigest()
+        file_gith = newgith.hexdigest()
+
+#       print "Z",file_md5
+#       print "Z",file_sha1
+#       print "Z",file_gith,"blob %d"%(file_size,)
+
+        cur.execute("select fn,path,md5,sha1,githash,strftime('%s',stamp),strftime('%s',stored) from meta where md5=?",(file_md5,))
+        row = cur.fetchone()
+        if row is None:
+            sb=os.stat(fn)
+            s=sb.st_size
+            print(("* %8s %s not in db (%s)?" % (s, fn,file_md5,)))
+            return
+
+        [x_fn,x_path,x_md5,x_sha1,x_githash,x_stamp,x_stored]=row
+
+        if x_sha1 != file_sha1:
+            print(("??? %s sha1 does not match db (%s)"%(file_md5,)))
+            return
+
+        if maybe_int(x_stamp) > -3601 and maybe_int(x_stamp) < 3601:
+            x_stamp = maybe_int(x_stored)
+
+        if abs(maybe_int(x_stamp)-maybe_int(file_time)) > 120:
+            print(fn,"time mismatch",(x_stamp),'disk',(file_time))
+            cur.execute("update meta set stamp=datetime(?,'unixepoch') where md5=?",(maybe_int(x_stamp),file_md5,))
+            os.utime(fn, (maybe_int(x_stamp), maybe_int(x_stamp)))
+            db_conn.commit()
+
+        if x_githash == None:
+            cur.execute("update meta set githash=? where md5=?",(file_gith,file_md5))
+            db_conn.commit()
+            print(fn,"added githash",file_gith)
+
+        if x_md5 == file_md5 and ( x_path != cwd or x_fn != fn):
+            if os.path.isfile(os.path.join(x_path,x_fn)) and os.path.isfile(os.path.join(cwd,fn)):
+                print(os.path.join(x_path,x_fn),'still here',cwd)
+            else:
+                cur.execute("update meta set path=?,fn=? where md5=?",(cwd,fn,file_md5,))
+                db_conn.commit()
+                if len(where)>1:
+                    print(fn,"some moved here",list(where.keys()))
+                else:
+                    if fn == x_fn:
+                        print(fn,'now here')
+                    else:
+                        print(fn,"renamed",x_fn)
+
+    cur.close()
+    return
+
+def main(argv=None):
+    argv = argv or sys.argv
+
+    db_file = os.environ['FLDB']
+
+    with sqlite.connect(db_file) as db_conn:
+        cwd = os.getcwd()
+        arr = argv[1:]
+        if len(arr) == 0:
+            arr = os.listdir(cwd)
+        for fn in arr:
+            if os.path.isfile(fn) and fn[0]!='.':
+                fn=fn.decode('utf-8')
+                metaloc(db_conn,cwd,fn)
+
+if __name__ == "__main__":
+    try:
+        sys.exit(main())
+    except KeyboardInterrupt:
+        print("^C", end=' ')
+        sys.exit(1)
