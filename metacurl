@@ -298,13 +298,15 @@ class singlefile(object):
             ANSI_OFF = ''
             ANSI_RED = ''
             ANSI_GREEN = ''
+            ANSI_YEL = ''
             ANSI_EL = ''
             CR = '\n'
         else:
             ANSI_OFF = b'\033[m\033[K'
             ANSI_RED = b'\033[31m'
             ANSI_GREEN = b'\033[32m'
-            ANIS_EL = b'\033[K' # tput el
+            ANSI_YEL = b'\033[38;5;11m'
+            ANSI_EL = b'\033[K' # tput el
             CR = b'\r'
 
         if '#' in url:
@@ -760,12 +762,14 @@ class singlefile(object):
             ANSI_OFF = ''
             ANSI_RED = ''
             ANSI_GREEN = ''
+            ANSI_YEL = ''
             ANSI_EL = ''
             CR = '\n'
         else:
             ANSI_OFF = b'\033[m\033[K'
             ANSI_RED = b'\033[31m'
             ANSI_GREEN = b'\033[32m'
+            ANSI_YEL = b'\033[38;5;11m'
             ANSI_EL = b'\033[K' # tput el
             CR = b'\r'
 
@@ -857,8 +861,8 @@ class singlefile(object):
             ok = ' '.join(good)
         # xxx no LF when debug
         sys.stderr.write(
-            "%s%s%s %s%s%s (%d)%s\n" %
-            (CR, ("\n" if len(bad) and not debug else ""), filename, report_color, ok, ANSI_OFF, self.filesize, ANSI_EL))
+            "%s%s%s%s%s %s%s%s (%d)%s\n" %
+            (CR, ("\n" if len(bad) and not debug else ""), ANSI_YEL, filename, ANSI_OFF, report_color, ok, ANSI_OFF, self.filesize, ANSI_EL))
 
         ## TODO avoid if duplicate
         ## 1/3 write .meta as text with some fields
