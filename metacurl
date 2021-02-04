@@ -978,6 +978,7 @@ def main():
     parser.add_argument('--socks5-hostname')
     parser.add_argument('-D', '--dump-header')
     parser.add_argument('-x', '--proxy')
+    parser.add_argument('-0', '--http1.0', action='store_true')
     # ^^^
     # --2.0 ignored for compatibility
     # -s should be always there (silent)
