@@ -1,0 +1,672 @@
+#!/usr/bin/python
+
+from optparse import OptionParser
+import xattr
+import sys
+import re
+import subprocess
+import os.path
+
+parser = OptionParser()
+#parser.add_option("-m","--md5",action="store_const", const="user.md5", dest="hashtype", default="user.sha1")
+(options, args) = parser.parse_args()
+
+old_bitcollider_tags={
+  'bitprint':'user.bitprint',
+  'tag.file.length':'user.length',
+  'tag.filename.filename':'user.origfilename',
+  'tag.file.first20':'user.first20',
+  'tag.crc32.crc32':'user.crc32',
+  'tag.md5.md5':'user.md5',
+  'tag.ed2k.ed2khash':'user.ed2khash',
+  'tag.kzhash.kzhash':'user.kzhash',
+}
+
+all_tags={
+  'user.bitprint':':bitprint',
+  'user.length':':tag.file.length',
+  'user.origfilename':':tag.filename.filename',
+  'user.first20':':tag.file.first20',
+  'user.crc32':'+crc32',
+# 'user.ed2khash':':tag.ed2k.ed2khash',
+  'user.ed2khash':'+ed2k',
+  'user.kzhash':':tag.kzhash.kzhash',
+  'user.md5':'+md5',
+  'user.sha1':'+sha1',
+  'user.sha256':'+sha-256',
+  'user.sha512':'+sha-512',
+  'user.sha3256':'+sha3-256',
+  'user.sha3512':'+sha3-512',
+  'user.rmd160':'+ripemd160',
+  'user.blake2b':'+blake2b',
+  'user.mimetype':'*',
+  'user.imagewidth':'*',
+  'user.imageheight':'*',
+}
+
+bitcollider_tags={}
+openssl_tags={}
+rhash_tags={}
+
+def degnorm(str):
+# str='51.00, 23.00, 24.20'
+  arc=str.split(',')
+  deg=float(arc[0])*60*60*1000
+  min=float(arc[1])*60*1000
+  sec=float(arc[2])*1000
+  arc_i = int(deg+min+sec)
+# print arc_i,arc
+  return "%.7f" % (arc_i/3600.0/1000.0)
+# deg_i=(arc_i)/60/60/1000
+# min_i=(arc_i-deg_i*60*60*1000)/60/1000
+# sec_i=(arc_i-deg_i*60*60*1000-min_i*60*1000)/1000
+# frc_i=arc_i%1000
+# return "%d %02d %02d.%03d" % (deg_i,min_i,sec_i,frc_i)
+
+for t in all_tags:
+  if all_tags[t][0]==':':
+    bitcollider_tags[all_tags[t][1:]]=t
+  if all_tags[t][0]=='-':
+    openssl_tags[t]=all_tags[t]
+  if all_tags[t][0]=='+':
+    rhash_tags[t]=all_tags[t][1:]
+
+#rint >>sys.stderr,bitcollider_tags
+#rint >>sys.stderr,openssl_tags
+#rint >>sys.stderr,rhash_tags
+
+for filename in args:
+  if re.match("^(\.a1|\.a2|\.sha1|.*(\.sha1|\.cddb|\.torrent|\.nfo|\.meta|/Thumbs\.db))$",filename):
+    continue
+
+  if not os.path.isfile(filename):
+    continue
+
+  if filename[0]=='/':
+    safer_filename=filename
+  else:
+    safer_filename='./'+filename
+
+  tags={}
+  for t in all_tags:
+    try:
+      tags[t] = xattr.getxattr(filename,t)
+    except:
+      pass
+
+  # XXX hardcoded
+  if 'user.bitprint' not in tags:
+    print >>sys.stderr,'*',filename,"had no bitprint"
+    # XXX unescaped filename
+    proc_collider=subprocess.Popen(['bitcollider','--crc32','--md5','-p','-a','--',safer_filename],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+    (outln,errln)=proc_collider.communicate()
+    proc_collider.wait()
+    for bc_line in outln.split('\n'):
+      try:
+        (k,v)=bc_line.split('=',1)
+        tags[old_bitcollider_tags[k]]=v.lower()
+      except:
+        pass
+
+  # XXX hardcoded
+  if 'user.origfilename' not in tags:
+    print >>sys.stderr,'*',filename,"had no origfilename"
+    if '/' in filename:
+      tags['user.origfilename']=filename.rsplit('/',1)[1]
+    else:
+      tags['user.origfilename']=filename
+
+  # fix up
+  try:
+    tags['user.crc32']=tags['user.crc32'].lower()
+    tags['user.first20']=tags['user.first20'].lower()
+  except:
+    pass
+
+  # other hashes
+  for d in openssl_tags:
+    if d not in tags:
+      print >>sys.stderr,'*',filename,"had no openssl",d
+      # XXX unescaped filename
+      proc_dgst = subprocess.Popen(['openssl','dgst','-r',openssl_tags[d],safer_filename],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+      (outln,errln)=proc_dgst.communicate()
+      proc_dgst.wait()
+      hex = outln.split(' ')
+      tags[d]=hex[0]
+
+  #rhash -p "crc32:%{crc32} sha1:%{sha1} blake2b:%{blake2b}" test
+  rhash_tpl=[]; rhash_arr=[]; rhash_type={}
+  for d in rhash_tags:
+    if d not in tags:
+      print >>sys.stderr,'*',filename,"had no rhash",d
+      rhash_arr.append(d)
+      rhash_tpl.append('%{'+rhash_tags[d]+'}')
+  if len(rhash_tpl)>0:
+    # XXX unescaped filename
+    proc_dgst = subprocess.Popen(['rhash','-p',' '.join(rhash_tpl),'--',safer_filename],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+    (outln,errln)=proc_dgst.communicate()
+    proc_dgst.wait()
+    for n,h in zip(rhash_arr,outln.split(' ')):
+      # XXX only if mismatch - but we don't fetch it if dupe
+      if n in tags:
+        print >>sys.stderr,'* dup %s %s for %s'%(n,h,filename)
+      tags[n]=h;
+      if n == 'user.sha256':
+        tags['user.shatag.sha256']=h
+
+  # jpeg basic data
+  if 'user.first20' in tags and re.match('^ffd8ff',tags['user.first20']):
+    if 'user.imagewidth' not in tags:
+      print >>sys.stderr,'*',safer_filename,"had no jpeg dimension"
+      proc_imginfo = subprocess.Popen(['imginfo','-f',safer_filename],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+      (outln,errln) = proc_imginfo.communicate()
+      proc_imginfo.wait()
+      (fmt,code,w,h,rest) = outln.split(' ',4)
+      if fmt == 'jpg':
+        tags['user.mimetype']='image/jpeg'
+        tags['user.imagewidth']=w
+        tags['user.imageheight']=h
+      else:
+        raise 'Whatever'
+
+    if 'user.exifman' not in tags:
+      print >>sys.stderr,'*',safer_filename,"had no jpeg exif"
+      lat_s=None; lat=None; lon_s=None; lon=None
+
+      proc_exif = subprocess.Popen(['exif','-m','--no-fixup',safer_filename],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+      (outln,errln) = proc_exif.communicate()
+      proc_exif.wait()
+      for exif_line in outln.split('\n'):
+        try:
+          (k,v)=exif_line.split('\t',1)
+          if k == 'Manufacturer':
+            tags['user.exifman']=v.strip()
+          elif k == 'Model':
+            tags['user.exifmodel']=v.strip()
+          elif k in ['Date and Time','Date and Time (original)','Date and Time (digitized)']:
+            (d,t)=v.split(' ',1)
+            if 'user.exifdate' not in tags:
+              tags['user.exifdate']='%s-%s-%s' % (d[0:4],d[5:7],d[8:10])
+            if 'user.exiftime' not in tags:
+              tags['user.exiftime']='%s:%s:%s' % (t[0:2],t[3:5],t[6:8])
+          elif k == 'GPS date':
+            tags['user.exifdate']='%s-%s-%s' % (v[0:4],v[5:7],v[8:10])
+          elif k == 'GPS time':
+            tags['user.exiftime']='%s:%s:%s' % (v[0:2],v[3:5],v[6:8])
+          elif k in ['North or South Latitude','Latitude','East or West Longitude','Longitude',]:
+            if k == 'North or South Latitude':
+              if v in ['N','n']: lat_s=''
+              else: lat_s='-'
+            if k == 'East or West Longitude':
+              if v in ['E','e']: lon_s='?'
+              else: lon_s='-'
+            if k == 'Latitude':
+              lat = degnorm(v)
+            if k == 'Longitude':
+              lon = degnorm(v)
+            if lat_s is not None and lat is not None and lon_s is not None and lon is not None:
+              tags['user.exiflatlon']="%s%s,%s%s" % (lat_s,lat,lon_s,lon,)
+              lat_s=None; lat=None; lon_s=None; lon=None
+        except:
+          pass
+
+  # picture file name should not be case sens
+  if 'user.mimetype' in tags and re.match('^image/',tags['user.mimetype']):
+    tags['user.origfilename']=tags['user.origfilename'].lower()
+
+  for k in all_tags:
+    if all_tags[k] == '*': continue
+    if k not in tags: print >>sys.stderr,"* no",k,"for",filename
+
+  print '#','file:',filename
+  for i in sorted(tags.keys()):
+    print '%s="%s"'% (i,tags[i],)
+  else:
+    print
+
+# attrs=xattr.list(f)
+# for i in attrs:
+#   if re.match('^user\.',i):
+#     print i,xattr.getxattr(f,i)
+# try:
+#   h=xattr.getxattr(f,options.hashtype)
+#   print "%s %s%s"%(h,"*",f,)
+# except:
+#   if not re.match(".*(\.sha1|\.cddb|\.torrent|\.nfo|\.meta|/Thumbs\.db)",f):
+#     print >>sys.stderr,"%s"%(f,)
+
+"""
+     17 user.audiobitrate
+    110 user.audiochannels
+    103 user.audiocodec
+    110 user.audiosamplerate
+  65040 user.bitprint
+     25 user.bitrate
+  65040 user.crc32
+     25 user.duration
+  65040 user.ed2khash
+    109 user.fileformat
+  65040 user.first20
+  65040 user.kzhash
+  65040 user.length
+  65043 user.md5
+  65043 user.rmd160
+  65043 user.sha1
+  65043 user.sha256
+     10 user.videobitrate
+    120 user.videocodec
+     27 user.videofps
+    134 user.videoheight
+    134 user.videowidth
+##!/usr/bin/perl -w
+
+use strict;
+
+my %bz=(
+  'bitprint','user.bitprint',
+  'tag.file.length','user.length',
+  'tag.file.first20','user.first20',
+# 'tag.filename.filename','user.filename',
+  'tag.ed2k.ed2khash','user.ed2khash',
+  'tag.kzhash.kzhash','user.kzhash',
+  'tag.crc32.crc32','user.crc32',
+  'tag.md5.md5','user.md5',
+  'tag.sha1.sha1','user.sha1',
+  'tag.rmd160.rmd160','user.rmd160',
+
+#  'tag.video.format','user.videoformat',
+  'tag.video.width','user.videowidth',
+  'tag.video.height','user.videoheight',
+  'tag.video.fps','user.videofps',
+  'tag.video.codec','user.videocodec',
+
+  'tag.video.bitrate','user.bitrate',
+  'tag.video.duration','user.duration',
+);
+
+open(STDERR,">/dev/null");
+
+my $tv=0;
+if ($ARGV[0] eq '-t') {
+  $tv=shift @ARGV;
+}
+
+my %meta=();
+
+my %codecs=(
+  'mp3lib','mp3',
+  'pcm','pcm',
+  'liba52','ac3',
+  'Dolby AC3','ac3',
+  'MPEG-1 Layer 3','mp3',
+  'XviD','XVID',
+  'DivX 3 Low-Motion','DIV3',
+  'DivX 3 Fast-Motion','DIV4',
+  'DivX 4','DIVX',
+  'DivX 5','DX50',
+  'H.264','H264',
+  'V_MPEG4/ISO/ASP','M4V',
+  'A_AC3','ac3',
+);
+
+for my $f (@ARGV) {
+  next if ($f =~ /\.(nfo|torrent|meta|attr|sha1)$/i);
+  next if ($f =~ /thumbs.db$/i);
+  next if (! -f $f);
+  $ENV{'F'}=$f;
+  %meta=();
+
+  if (open(F,'getfattr -d "$F"|')) {
+    while(<F>) {
+      if ($_ =~ /^(user\..*?)=\"(.*)\"\r?\n?$/) {
+        $meta{$1}=$2;
+      }
+    }
+    close(F);
+  }
+
+  print "# file: $f\n";
+
+  goto VIDEO if ($meta{'user.bitprint'});
+  goto HASHES if ($meta{'user.bitprint'});
+
+  if (open(F,'bitcollider --crc32 --md5 -p -a "$F"|')) {
+    while(<F>) {
+#      print "Q:$_";
+      if ($_ =~ /^(.*?)=(.*?)\r?\n?$/) {
+        my ($t,$v)=($1,$2);
+        if ($bz{$t}) {
+          $meta{$bz{$t}}=$v;
+        }
+      }
+    }
+    close(F);
+  }
+
+VIDEO:
+  my $isvideo=0;
+
+# -: RIFF (little-endian) data, AVI, 592 x 320, 23.98 fps, video: XviD, audio: MPEG-1 Layer 3 (stereo, 48000 Hz)
+  if (open(F,'file "$F"|')) {
+    while(<F>) {
+#      print "Q:$_";
+# RIFF (little-endian) data, AVI, 640 x 272, 23.98 fps, video: XviD, audio: Dolby AC3 (6 channels, 48000 Hz)
+# RIFF (little-endian) data, AVI, 640 x 352, 25.00 fps, video: XviD, audio: MPEG-1 Layer 3 (stereo, 48000 Hz)
+# RIFF (little-endian) data, AVI, 640 x 272, 25.00 fps, video: XviD, audio: Dolby AC3 (5 channels, 48000 Hz)
+# RIFF (little-endian) data, AVI, 608 x 256, 23.98 fps, video: XviD, audio: MPEG-1 Layer 3 (mono, 48000 Hz)
+# RIFF (little-endian) data, AVI, 592 x 320, 25.00 fps, video: DivX 3 Low-Motion, audio: MPEG-1 Layer 3 (stereo, 48000 Hz)
+# RIFF (little-endian) data, AVI, 384 x 288, 25.00 fps, video: DivX 5, audio: MPEG-1 Layer 3 (stereo, 22050 Hz)
+     if ($_ =~ m#, AVI, (\d+) x (\d+), ([\d.]+) fps, video: (.*?), audio: (.*) \((.*?), (\d+) Hz\)#) {
+	$isvideo='AVI';
+        $meta{'user.fileformat'}='AVI';
+        $meta{'user.videowidth'}=$1;
+        $meta{'user.videoheight'}=$2;
+        $meta{'user.videofps'}=$3;
+        $meta{'user.videocodec'}=$4;
+#	print "Q-fav: $1:$2:$3:$4:$4:$5:$6:$7\n";
+      }
+      if ($_ =~ m#MPEG v4#i) { $isvideo='AVI' }
+      if ($_ =~ m#matroska#i) { $isvideo='MKV'; }
+# Ogg data, OGM video (XviD)
+# Matroska data
+# ISO Media, MPEG v4 system, version 2
+# EBML file, creator matroska
+# Apple QuickTime movie (unoptimized)
+    }
+    close(F);
+  }
+
+#  print "Q: $isvideo\n";
+#  |  + Default duration: 39.995ms (25.003 fps for a video track)
+#  |   + Pixel width: 720
+#  |   + Pixel height: 576
+#  |   + Display width: 1024
+#  |   + Display height: 576
+#  | + A track
+#  |  + Track number: 2
+#  |  + Track UID: 34944194
+#  |  + Track type: audio
+#  |  + Lacing flag: 0
+#  |  + Codec ID: A_AC3
+#  |  + Language: eng
+#  |  + Default flag: 1
+#  |  + Audio track
+#  |   + Sampling frequency: 48000
+#  |   + Channels: 2
+#  |+ Cluster
+  if ($isvideo eq 'MKV' && open(F,'mkvinfo "$F"|')) {
+    $meta{'user.fileformat'}='MKV';
+    while(<F>) {
+#      print "Q: $_";
+      if ($_ =~ m#Codec ID: (V_MPEG4.*ASP)#) {
+	 $meta{'user.videocodec'}=$1;
+	 if ($codecs{$1}) { $meta{'user.videocodec'}=$codecs{$1}; }
+      }
+      if ($_ =~ m#Codec ID: (A_AC3)#) {
+	 $meta{'user.audiocodec'}=$1;
+	 if ($codecs{$1}) { $meta{'user.audiocodec'}=$codecs{$1}; }
+      }
+      if ($_ =~ m#Pixel width: (\d+)#) { $meta{'user.videowidth'}=$1; }
+      if ($_ =~ m#Pixel height: (\d+)#) { $meta{'user.videoheight'}=$1; }
+      if ($_ =~ m#Sampling frequency: (\d+)#) { $meta{'user.audiosamplerate'}=$1; }
+      if ($_ =~ m#Channels: (\d+)#) { $meta{'user.audiochannels'}=$1; }
+    }
+  }
+# AVI file format detected.
+# VIDEO:  [DX50]  512x384  24bpp  23.976 fps  877.2 kbps (107.1 kbyte/s)
+# [V] filefmt:3  fourcc:0x30355844  size:512x384  fps:23.98  ftime:=0.0417
+# Opening audio decoder: [mp3lib] MPEG layer-2, layer-3
+# Opening audio decoder: [pcm] Uncompressed PCM audio decoder
+# Opening audio decoder: [liba52] AC3 decoding with liba52
+# AC3: 5.1 (3f+2r+lfe)  48000 Hz  448.0 kbit/s
+# AUDIO: 44100 Hz, 2 ch, s16le, 112.0 kbit/7.94% (ratio: 14000->176400)
+  if ($isvideo eq 'AVI' && open(F,'mencoder -oac pcm -ovc copy -endpos 10 "$F" -o /dev/null|')) {
+    while(<F>) {
+      if ($_ =~ m#^AVI file format detected#) {
+        $meta{'user.fileformat'}='AVI';
+      }
+      if ($_ =~ m#^MOV: Found MPEG4 movie#) {
+	$meta{'user.fileformat'}='M4V';
+      }
+#      print "Q: $_";
+#                  VIDEO:  [avc1]  720x368  24bpp  29.970 fps    0.0 kbps ( 0.0 kbyte/s)
+      if ($_ =~ m#^VIDEO:\s+\[(....)\]\s+(\d+)x(\d+)\s+.*?\s+([\d.]+)\s+fps\s+([\d.]+)\s+kbp.*?\r?\n?$#) {
+        $meta{'user.videocodec'}=$1;
+        $meta{'user.videowidth'}=$2;
+        $meta{'user.videoheight'}=$3;
+        $meta{'user.videofps'}=$4+0;
+        $meta{'user.videobitrate'}=$5 if ($5+0);
+	if ($codecs{$1}) { $meta{'user.videocodec'}=$codecs{$1}; }
+#        print "Q-vid: $1 $2 $3 $4\n";
+      }
+      if ($_ =~ m#audio decoder: \[(.*?)\]#) {
+#	print "Q-aud: $1\n";
+        if ($codecs{$1}) { $meta{'user.audiocodec'}=$codecs{$1}; }
+      }
+      if ($_ =~ m#^AC3: ([\d+.]+) .* (\d+) Hz  ([\d+.]+) kbit/s\r?\n?$#) {
+        $meta{'user.audiocodec'}='ac3';
+        $meta{'user.audiochannels'}=$1+0;
+        $meta{'user.audiosamplerate'}=$2;
+        $meta{'user.audiobitrate'}=($3+0);
+#        print "Q-ac3: $1 $2 $3 $4\n";
+      }
+      # AUDIO: 48000 Hz, 2 ch, 16 bit (0x10), ratio: 4000->192000 (32.0 kbit)
+      #
+      if ($_ =~ m#^AUDIO: (\d+) Hz, (\d+) ch,.*?([0-9.]+) kbit#) {
+#        print "Q-oth: $1 $2 $3\n";
+	if (!defined $meta{'user.audiobitrate'}) {
+          $meta{'user.audiochannels'}=$2;
+          $meta{'user.audiosamplerate'}=$1;
+          $meta{'user.audiobitrate'}=($3+0);
+#         $meta{'user.audiocodec'}='mp3';
+        }
+      }
+    }
+    close(F);
+  }
+
+# RIPEMD160(/etc/hosts)= 0c5bb718a5808b78a2cc6638e14075f0ea9dbe71
+HASHES:;
+  goto OK32 if $meta{'user.md5'};
+  if (open(F,'openssl md5 "$F"|')) {
+    while(<F>) {
+      if ($_ =~ m#\)= (.*)\r?\n?$#) {
+        $meta{'user.md5'}=$1;
+      }
+    }
+    close(F);
+  }
+
+OK32:;
+  goto OK160 if $meta{'user.rmd160'};
+  if (open(F,'openssl rmd160 "$F"|')) {
+    while(<F>) {
+      if ($_ =~ m#\)= (.*)\r?\n?$#) {
+        $meta{'user.rmd160'}=$1;
+      }
+    }
+    close(F);
+  }
+
+OK160:;
+  goto OK80 if $meta{'user.sha1'};
+  if (open(F,'openssl sha1 "$F"|')) {
+    while(<F>) {
+      if ($_ =~ m#\)= (.*)\r?\n?$#) {
+        $meta{'user.sha1'}=$1;
+      }
+    }
+    close(F);
+  }
+
+OK80:;
+  goto PRINT if $meta{'user.sha256'};
+  if (open(F,'openssl sha256 "$F"|')) {
+    while(<F>) {
+      if ($_ =~ m#\)= (.*)\r?\n?$#) {
+        $meta{'user.sha256'}=$1;
+      }
+    }
+    close(F);
+  }
+
+PRINT:
+  for my $k (sort keys %meta) {
+    printf "%s=\"%s\"\n",$k,$meta{$k};
+  }
+  print "\n";
+}
+
+# 'user.md5sum'
+
+__END__;
+
+exif -m IMG_20120831_195350.jpg |
+
+Manufacturer^IDELL$
+Model^IStreak$
+x-Resolution^I72.00$
+y-Resolution^I72.00$
+Resolution Unit^IInch$
+Date and Time^I2012:08:20 16:31:39$
+YCbCr Positioning^Icentered$
+Compression^IJPEG compression$
+x-Resolution^I72.00$
+y-Resolution^I72.00$
+Resolution Unit^IInch$
+Exif Version^IExif Version 2.2$
+Date and Time (original)^I2012:08:20 16:31:39$
+Date and Time (digitized)^I2012:08:20 16:31:39$
+Components Configuration^IY Cb Cr -$
+Focal Length^I3.4 mm$
+FlashPixVersion^IFlashPix Version 1.0$
+Color Space^IsRGB$
+PixelXDimension^I1280$
+PixelYDimension^I960$
+North or South Latitude^IN$
+Latitude^I$
+East or West Longitude^IW$
+Longitude^I$
+Altitude reference^ISea level$
+Altitude^I0.00$
+GPS time (atomic clock)^I15:31:26.00$
+Name of GPS processing method^IASCII$
+GPS date^I2012:08:20$
+Interoperability Index^IR98$
+Interoperability Version^I0100$
+ThumbnailSize^I16937$
+
+Orientation^IUnknown value 0$
+YCbCr Positioning^Icentered$
+x-Resolution^I72.00$
+y-Resolution^I72.00$
+Resolution Unit^IInch$
+Date and Time^I2012:08:31 19:53:50$
+Manufacturer^ISamsung$
+Model^IGalaxy Nexus$
+Image Width^I160$
+Image Length^I120$
+Compression^IJPEG compression$
+x-Resolution^I72.00$
+y-Resolution^I72.00$
+Resolution Unit^IInch$
+Exif Version^IExif Version 2.2$
+FlashPixVersion^IUnknown FlashPix Version$
+Color Space^IsRGB$
+Components Configuration^IY Cb Cr -$
+Compressed Bits per Pixel^I0.00$
+PixelXDimension^I960$
+PixelYDimension^I1280$
+Date and Time (original)^I2012:08:31 19:53:50$
+Date and Time (digitized)^I2012:08:31 19:53:50$
+Exposure Time^I1/33 sec.$
+FNumber^If/3.0$
+Exposure Program^IAperture priority$
+ISO Speed Ratings^I160, 0, 0$
+Shutter speed^I4.90 EV (1/29 sec.)$
+Aperture^I3.00 EV (f/2.8)$
+Brightness^I0.00 EV (3.43 cd/m^2)$
+Exposure Bias^I0.00 EV$
+Maximum Aperture Value^I3.00 EV (f/2.8)$
+Subject Distance^I0.0 m$
+Metering Mode^IMulti Spot$
+Light Source^IFluorescent$
+Flash^IFlash did not fire$
+Focal Length^I1.9 mm$
+Flash Energy^I0.00$
+Exposure Index^I0/0$
+Sensing Method^IOne-chip color area sensor$
+Scene Type^IDirectly photographed$
+Custom Rendered^ICustom process$
+Exposure Mode^IAuto exposure$
+White Balance^IAuto white balance$
+Digital Zoom Ratio^I1.00$
+Scene Capture Type^IStandard$
+Contrast^INormal$
+Saturation^INormal$
+Sharpness^INormal$
+Subject Distance Range^IUnknown$
+Image Unique ID^IOAEK01$
+GPS time (atomic clock)^I17:53:50.00$
+GPS date^I2012:08:31$
+ThumbnailSize^I6232$
+
+Manufacturer^IPanasonic$
+Model^IDMC-GX1$
+Orientation^Itop - left$
+x-Resolution^I180.00$
+y-Resolution^I180.00$
+Resolution Unit^IInch$
+Software^IVer.1.1  $
+Date and Time^I2012:06:13 21:29:21$
+YCbCr Positioning^Ico-sited$
+PRINT Image Matching^I208 bytes undefined data$
+Compression^IJPEG compression$
+Orientation^Itop - left$
+x-Resolution^I180.00$
+y-Resolution^I180.00$
+Resolution Unit^IInch$
+YCbCr Positioning^Ico-sited$
+Exposure Time^I1/10 sec.$
+FNumber^If/5.6$
+Exposure Program^IPortrait mode (for closeup photos with the background out of focus)$
+ISO Speed Ratings^I1600$
+Exif Version^IUnknown Exif Version$
+Date and Time (original)^I2012:06:13 21:29:21$
+Date and Time (digitized)^I2012:06:13 21:29:21$
+Components Configuration^IY Cb Cr -$
+Compressed Bits per Pixel^I4.00$
+Exposure Bias^I0.00 EV$
+Maximum Aperture Value^I4.98 EV (f/5.6)$
+Metering Mode^IPattern$
+Light Source^IUnknown$
+Flash^IFlash did not fire, compulsory flash mode$
+Focal Length^I42.0 mm$
+Maker Note^I7996 bytes undefined data$
+FlashPixVersion^IFlashPix Version 1.0$
+Color Space^IsRGB$
+PixelXDimension^I3232$
+PixelYDimension^I2424$
+Sensing Method^IOne-chip color area sensor$
+File Source^IDSC$
+Scene Type^IDirectly photographed$
+Custom Rendered^INormal process$
+Exposure Mode^IAuto exposure$
+White Balance^IManual white balance$
+Digital Zoom Ratio^I0.00$
+Focal Length In 35mm Film^I84$
+Scene Capture Type^IPortrait$
+Gain Control^IHigh gain up$
+Contrast^INormal$
+Saturation^INormal$
+Sharpness^INormal$
+Interoperability Index^IR98$
+Interoperability Version^I0100$
+ThumbnailSize^I5093$
+
+imginfo
+jpg 3 2112 2816 8 17842176
+jpg 3 960 1280 8 3686400
+
+
+"""
