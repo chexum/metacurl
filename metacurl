@@ -492,6 +492,7 @@ class singlefile(object):
                             z = arr[2].strip('\x27\x22\x09\x20')
                     z = bytearray(z).decode('utf-8')
                     if z:
+                        z.replace('%20','_')
                         self.filename = z
             except (KeyError, TypeError, AttributeError,UnicodeError):
                 # AttributeError when filename is not specified (None)
