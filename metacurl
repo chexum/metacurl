@@ -26,13 +26,18 @@ except ImportError:
     pass # just ignore it for now
 
 def set_extended_attr(fno,aname,avalue):
+    # pyxattr API should work with python3
     try:
-        # XXX This is for Linux, OS X has a different module
-        # and not with each installed python version - need to figure it out
+        xattr.set(fno,'user.%s'%(aname,),avalue.encode('utf-8'))
+        return
+    except:
+        pass
+
+    # obsolete one?
+    try:
         xattr._fsetxattr(fno,'user.%s'%(aname,),avalue.encode('utf-8'))
     except:
         print("fsetxattr %s failed"%(aname,))
-        pass
 
 # environment name for user's meta filelist directory
 FL = 'FLMETADIR'
