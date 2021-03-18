@@ -1,18 +1,19 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import subprocess, os, hashlib
 import tempfile
-import urlparse
+import urllib.parse
 import re
-import datetime, dateutil.parser, time
+import datetime, time
+import dateutil.parser
 import platform, sys
 import argparse
 import json
 import sqlite3
 import base64, binascii
-import urllib
-import HTMLParser
-import StringIO
+import urllib.request, urllib.parse, urllib.error
+import html.parser
+import io
 import codecs
 
 ###########################################################################
@@ -30,7 +31,7 @@ def set_extended_attr(fno,aname,avalue):
         # and not with each installed python version - need to figure it out
         xattr._fsetxattr(fno,'user.%s'%(aname,),avalue.encode('utf-8'))
     except:
-        print "fsetxattr %s failed"%(aname,)
+        print("fsetxattr %s failed"%(aname,))
         pass
 
 # environment name for user's meta filelist directory
@@ -56,7 +57,7 @@ class MetaFLJSONEncoder(json.JSONEncoder):
 ###########################################################################
 
 def tokensplit(s):
-    w = s.strip(b'\x20\x09')
+    w = s.encode('UTF-8').strip(b'\x20\x09').decode('UTF-8')
     t = []
     while len(w)>0:
         m=re.match('^[\x20\x09]*([A-Za-z0-9\x21\x23\x24\x25\x26\x27\x2a\x2b\x2d\x2e\x5e\x5f\x60\x7c\x7e]+)[\x20\x09]*(;|=|$)[\x20\x09]*(.*?)$'
@@ -144,7 +145,7 @@ class http_headerblock(object):
             for s in allvalues[1:]:
                 if s != cl:
                     # XXX write stderr fmt
-                    print "!! ambiguous header %s (%s:%s)", name, s, cl
+                    print("!! ambiguous header %s (%s:%s)", name, s, cl)
                     return None
             return cl
         except KeyError:
@@ -208,7 +209,7 @@ class http_headerblock(object):
         # status-line = HTTP-version SP status-code SP reason-phrase CRLF
         l = ''
         for l in pipe:
-            if l: l = l.rstrip("\x20\x09\r\n")
+            if l: l = l.decode('UTF-8').rstrip("\x20\x09\r\n")
             break
         else:
             return None
@@ -225,7 +226,7 @@ class http_headerblock(object):
         lines = []
 
         for l in pipe:
-            if l: l = l.rstrip("\r\n")
+            if l: l = l.rstrip(b"\r\n").decode('UTF-8')
             if l == '':
                 break
             # XXX folding not well tested
@@ -347,7 +348,7 @@ class singlefile(object):
             hunk = parts[-1]
 
         try:
-            x = urllib.unquote(hunk)
+            x = urllib.parse.unquote(hunk)
             if x != hunk:
                 hunk = x
         except:
@@ -363,7 +364,7 @@ class singlefile(object):
             url, frag = self.canonical_url(url, frag)
             ###
             if self.orig_url != url and re.match(r'https?://t\.co/.*|.*kernel\.org/.*|.*downloads.sourceforge.net/.*',self.orig_url):
-                print "forget",self.orig_url,url
+                print("forget",self.orig_url,url)
                 self.orig_url = url
 
             sys.stderr.write(("-- %s %s %s\n"
@@ -394,13 +395,13 @@ class singlefile(object):
                 ftpconv = ''
 
                 import ftplib
-                import urlparse
-                u = urlparse.urlparse(url)
+                import urllib.parse
+                u = urllib.parse.urlparse(url)
                 # ParseResult(scheme='ftp', netloc='atrey.karlin.mff.cuni.cz:21', path='/pub/linux/pci/pciutils-3.5.6.tar.gz.sign', params='', query='', fragment='')
                 try:
                     ftpconn = ftplib.FTP(u.netloc)
                     res = ftpconn.login()
-                    print '* ftp',res.split("\n")[0]
+                    print('* ftp',res.split("\n")[0])
                     # 230 Login successful.
                     if res[0] == '2':
                         firstline = res[4:].split('\n')[0].strip("\r")
@@ -411,12 +412,12 @@ class singlefile(object):
 
                     ftpsz = ftpconn.size(u.path)
 #                    res=ftpconn.sendcmd("SIZE %s"%(u.path))
-                    print '* ftp size 213',ftpsz
+                    print('* ftp size 213',ftpsz)
                     # 213 811
                     #if res[0] == '2':
                     ftpconv = ftpconv + 'Content-Length: ' + str(ftpsz) + '\r\n'
                     ftptm=ftpconn.sendcmd("MDTM %s"%(u.path))
-                    print '* ftp time',ftptm
+                    print('* ftp time',ftptm)
                     # 213 20171117140512
                     if ftptm[0] == '2':
                         tm = ftptm[4:]
@@ -427,10 +428,10 @@ class singlefile(object):
                     ftpconn.quit()
                     ftpconn = None
                     ftpconv = ftpconv + '\r\n'
-                except ftplib.all_errors, e:
-                    print '* ftp',e
+                except ftplib.all_errors as e:
+                    print('* ftp',e)
 
-                ftpstr = StringIO.StringIO(ftpconv)
+                ftpstr = io.StringIO(ftpconv)
                 hdr = http_headerblock(ftpstr)
             else:
                 hdr = None
@@ -469,7 +470,7 @@ class singlefile(object):
                 break
 
             ## check if redirect
-            if (hdr.status_code / 100) == 3:
+            if hdr.status_code >= 300 and hdr.status_code <  400:
                 self.error = "redirecting"
                 self.ext_args = []
                 run_curl.kill()
@@ -500,7 +501,6 @@ class singlefile(object):
                         arr = l[3].strip().split("'")
                         if len(arr) > 2:
                             z = arr[2].strip('\x27\x22\x09\x20')
-                    z = bytearray(z).decode('utf-8')
                     if z:
                         z.replace('%20','_')
                         self.filename = z
@@ -553,7 +553,7 @@ class singlefile(object):
                 if len(d) == 32:
                     dig = d.lower()
                 else:
-                    dig = binascii.hexlify(base64.b64decode(d)).lower()
+                    dig = binascii.hexlify(base64.b64decode(d)).decode('ASCII').lower()
                 if self.expected_md5:
                     if self.expected_md5 != dig:
                         sys.stderr.write("!! different MD5 digests to check\n")
@@ -570,7 +570,7 @@ class singlefile(object):
                                 sys.stderr.write(
                                     "!! different MD5 digests to check\n")
                         else:
-                            self.expected_md5 = dig
+                            self.expected_md5 = dig.decode('ASCII')
             except (KeyError, ValueError, TypeError):
                 pass
 
@@ -584,7 +584,7 @@ class singlefile(object):
                         sys.stderr.write(
                                     "!! different MD5 digests to check\n")
                     else:
-                        self.expected_md5 =dig
+                        self.expected_md5 = dig
             except (AttributeError, TypeError):
                 self.etag = None
 
@@ -617,7 +617,7 @@ class singlefile(object):
                 self.error = "downloading"
                 f = tempfile.mkstemp(prefix='.dl_', dir='.')
             self.tmpname = f[1]
-            f = os.fdopen(f[0], "w")
+            f = os.fdopen(f[0], "wb")
             set_extended_attr(f.fileno(),'origurl',self.orig_url)
 
             ## TODO progress
@@ -669,6 +669,7 @@ class singlefile(object):
                 self.stamp = hdr.get_chrono_header('Last-Modified')
             except:
                 self.stamp = None
+            if self.stamp == -1: self.stamp = None
             # this overrides the naive stamp
             z = hdr.get_chrono_header('X-Archive-Orig-Last-Modified')
             if z:
@@ -754,7 +755,7 @@ class singlefile(object):
         # unsure if correct
         loc = loc[:]
         if ' ' in loc: loc = loc.replace(' ', '%20')
-        url = urlparse.urljoin(url, loc)
+        url = urllib.parse.urljoin(url, loc)
         return orig_url, url
 
     def canonical_filename(self, filename, url):
@@ -777,12 +778,12 @@ class singlefile(object):
             ANSI_EL = ''
             CR = '\n'
         else:
-            ANSI_OFF = b'\033[m\033[K'
-            ANSI_RED = b'\033[31m'
-            ANSI_GREEN = b'\033[32m'
-            ANSI_YEL = b'\033[38;5;11m'
-            ANSI_EL = b'\033[K' # tput el
-            CR = b'\r'
+            ANSI_OFF = '\033[m\033[K'
+            ANSI_RED = '\033[31m'
+            ANSI_GREEN = '\033[32m'
+            ANSI_YEL = '\033[38;5;11m'
+            ANSI_EL = '\033[K' # tput el
+            CR = '\r'
 
         if self.error and not debug:
             sys.stderr.write("!! cannot save, %s%s%s\n" %
@@ -790,16 +791,30 @@ class singlefile(object):
             return None
         if not self.tmpname:
             return None
+
+        # step - find a filename (or a duplicate prefix to make it unique)
         if filename is None:
             filename = self.filename
+
+        # XXX todo
+        # duplicate by hash?
+        # duplicate by name on fs elsewhere
+        # duplicate by name in db (case-insensitive)
+        # XXX todo
+
+        # check if name already in use
+        dupprefix = ''
         try:
-            # XXX if duplicate by hash - try to not save
-            os.stat(filename)
-            filename = "%s.%s" % (filename, os.getpid())
-            os.stat(filename)
+            # break out via OSError if file with that name does not exist
+            os.stat(dupprefix + filename)
+            dupprefix = 'dup.'
+            os.stat(dupprefix + filename)
+            dupprefix = 'dup.%d.' % (os.getpid(),)
+            os.stat(dupprefix + filename)
             return None
         except OSError:
             pass
+        filename = dupprefix+filename
 
         # XXX try to match with constraints instead?
         if self.filename[-4:].upper() == '.PHP':
@@ -834,10 +849,10 @@ class singlefile(object):
         # postponing these - the temp file won't be seen as proper
         if self.stamp:
             os.utime(self.tmpname, (self.stamp, self.stamp))
-        os.chmod(self.tmpname, 0644)
+        os.chmod(self.tmpname, 0o644)
 
         self.filename = filename.replace('/','_')
-        print self.filename,self.tmpname,ANSI_EL
+        print(self.filename,self.tmpname,ANSI_EL)
         os.rename(self.tmpname, self.filename)
         self.tmpname = None
         bad = []
@@ -894,7 +909,7 @@ class singlefile(object):
             pass
 
         try:
-          self.filename = self.filename.decode('utf-8')
+          self.filename = self.filename.encode('utf-8')
         except (UnicodeError):
           pass
 
@@ -903,8 +918,10 @@ class singlefile(object):
             metafile = os.environ[METAFILE]
 
         with codecs.open(metafile, encoding='utf-8', mode='a') as f:
-            f.write("\t".join([unicode(i) if i else '?' for i in \
-              [self.filename,self.filesize,safestamp,self.hashes[0],self.mimetype,self.encoding,self.orig_url,self.stored,self.server,self.etag]])+"\n")
+            f.write("\t".join([str(i) if i else '?' for i in \
+              [self.filename.decode('UTF-8'),self.filesize,safestamp,\
+               self.hashes[0],self.mimetype,self.encoding,\
+               self.orig_url,self.stored,self.server,self.etag]])+"\n")
             f.close()
 
         ## 2/3 write per-user/host meta - may fail silently
@@ -912,8 +929,8 @@ class singlefile(object):
         try:
             year = time.gmtime(self.stored).tm_year
         except TypeError:
-            year = time.time().tm_year
-        d={'file':unicode(self.filename),'size':self.filesize,'stamp':safestamp,\
+            year = time.gmtime(time.time()).tm_year
+        d={'file':self.filename.decode('UTF-8'),'size':self.filesize,'stamp':safestamp,\
         'md5':self.hashes[0],'sha1':self.hashes[1],'sha256':self.hashes[2],\
         'githash':self.hashes[3],'mimetype':self.mimetype,'charset':self.charset,\
         'encoding':self.encoding,'url':self.orig_url,\
@@ -941,7 +958,7 @@ class singlefile(object):
             insert into meta
             (path,fn,size,stamp,md5,sha1,sha256,githash,mimetype,mimecs,mimeenc,url,stored,server,etag)
             values(?,?,?,datetime(?,'unixepoch'),?,?,?,?,?,?,?,?,datetime(?,'unixepoch'),?,?)""",\
-            (os.getcwd(),unicode(self.filename),self.filesize,self.stamp,\
+            (os.getcwd(),self.filename.decode('UTF-8'),self.filesize,self.stamp,\
             self.hashes[0],self.hashes[1],self.hashes[2],self.hashes[3],\
             self.mimetype,self.charset,self.encoding,self.orig_url,\
             self.stored,self.server,self.etag))
@@ -1043,10 +1060,10 @@ def main():
     except:
         args.__dict__['header'] = []
 
-    for k, v in add_headers.iteritems():
+    for k, v in add_headers.items():
         args.__dict__['header'].append(v)
 
-    for i, v in args.__dict__.items():
+    for i, v in list(args.__dict__.items()):
         if isinstance(v, list) and i in ['header', ]:
             for n in v:
                 curl_args.extend(['--%s' % (i), '%s' % (n, )])

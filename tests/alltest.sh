@@ -39,7 +39,7 @@ EOF
 rm -f .meta 030_*.html dup.030_*.html 032_*.html dup.032_*.html
 
 export PYTHONIOENCODING=utf8
-export PYTHON=$(PATH=/bin:/usr/bin:/usr/local/bin:$PATH which python)
+export PYTHON=$(PATH=/usr/local/bin:/usr/bin:$PATH which python3)
 
 #or i in "$@"; do
 for i in [0-9]*txt; do

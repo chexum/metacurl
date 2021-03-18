@@ -1,6 +1,6 @@
 -- downloading 029_md5bad.out 
-X-CHECKSUM-SHA1 0b5a370e199b6bf296e3020f68c7124290044121
 X-CHECKSUM-MD5 77777777777777777777777777777777
+X-CHECKSUM-SHA1 0b5a370e199b6bf296e3020f68c7124290044121
 
 029_md5bad.out BAD MD5 (309)
 {"file":"029_md5bad.out","size":309,"stamp":1484088509,"md5":"f4449684d6edbc7e170b97f01734c693","sha1":"0b5a370e199b6bf296e3020f68c7124290044121","sha256":"cdc1cc3b14031120bcbfb042277a9c05f2960acee4716d27ba52eaf56713889a","githash":null,"mimetype":"application/binary","charset":null,"encoding":null,"url":"029_md5bad.out","stored":null,"server":"nginx","etag":null}
