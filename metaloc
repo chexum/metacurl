@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # vim: ts=8 sw=4 sta sts=4 ai
 
 from __future__ import print_function
@@ -52,36 +52,42 @@ def metaloc(db_conn,cwd,fn):
             maybe_int(file_time) < 3601 or maybe_int(f[5]) != maybe_int(file_time) or \
             f[3] is None:
         newmd5 = hashlib.new('md5')
+        newsha256 = hashlib.new('sha256')
         newsha1 = hashlib.new('sha1')
         newgith = hashlib.new('sha1')
         newgith.update(b"blob %d\0"%(file_size,))
 
-    with open(fn) as f:
+    with open(fn,"rb") as f:
         for b in f:
             newmd5.update(b)
             newsha1.update(b)
+            newsha256.update(b)
             newgith.update(b)
 
         file_md5 = newmd5.hexdigest()
+        file_sha256 = newsha256.hexdigest()
         file_sha1 = newsha1.hexdigest()
         file_gith = newgith.hexdigest()
 
-#       print "Z",file_md5
-#       print "Z",file_sha1
-#       print "Z",file_gith,"blob %d"%(file_size,)
+#        print ("Z",fn.decode('utf-8'))
+#        print ("Z",file_md5)
+#        print ("Z",file_sha1)
+#        print ("Z",file_gith,"blob %d"%(file_size,))
 
-        cur.execute("select fn,path,md5,sha1,githash,strftime('%s',stamp),strftime('%s',stored) from meta where md5=?",(file_md5,))
+        cur.execute("select fn,path,md5,sha1,githash,strftime('%s',stamp),strftime('%s',stored) from meta where sha256=?",(file_sha256,))
         row = cur.fetchone()
         if row is None:
             sb=os.stat(fn)
             s=sb.st_size
-            print(("* %8s %s not in db (%s)?" % (s, fn,file_md5,)))
+            print(("* %8s %s not in db (%s)?" % (s, fn,file_sha256,)))
             return
 
         [x_fn,x_path,x_md5,x_sha1,x_githash,x_stamp,x_stored]=row
+#       print (x_fn,x_path) - x_fn is sometimes stored as blob
+#        x_path=x_path
 
         if x_sha1 != file_sha1:
-            print(("??? %s sha1 does not match db (%s)"%(file_md5,)))
+            print(("??? %s sha1 does not match db (%s)"%(file_sha1,)))
             return
 
         if maybe_int(x_stamp) > -3601 and maybe_int(x_stamp) < 3601:
@@ -89,20 +95,21 @@ def metaloc(db_conn,cwd,fn):
 
         if abs(maybe_int(x_stamp)-maybe_int(file_time)) > 120:
             print(fn,"time mismatch",(x_stamp),'disk',(file_time))
-            cur.execute("update meta set stamp=datetime(?,'unixepoch') where md5=?",(maybe_int(x_stamp),file_md5,))
+            cur.execute("update meta set stamp=datetime(?,'unixepoch') where sha256=?",(maybe_int(x_stamp),file_sha256,))
             os.utime(fn, (maybe_int(x_stamp), maybe_int(x_stamp)))
             db_conn.commit()
 
         if x_githash == None:
-            cur.execute("update meta set githash=? where md5=?",(file_gith,file_md5))
+            cur.execute("update meta set githash=? where sha256=?",(file_gith,file_sha256))
             db_conn.commit()
             print(fn,"added githash",file_gith)
 
         if x_md5 == file_md5 and ( x_path != cwd or x_fn != fn):
+#           print (x_path,x_fn,cwd,fn)
             if os.path.isfile(os.path.join(x_path,x_fn)) and os.path.isfile(os.path.join(cwd,fn)):
                 print(os.path.join(x_path,x_fn),'still here',cwd)
             else:
-                cur.execute("update meta set path=?,fn=? where md5=?",(cwd,fn,file_md5,))
+                cur.execute("update meta set path=?,fn=? where sha256=?",(cwd,fn,file_sha256,))
                 db_conn.commit()
                 if len(where)>1:
                     print(fn,"some moved here",list(where.keys()))
@@ -127,7 +134,6 @@ def main(argv=None):
             arr = os.listdir(cwd)
         for fn in arr:
             if os.path.isfile(fn) and fn[0]!='.':
-                fn=fn.decode('utf-8')
                 metaloc(db_conn,cwd,fn)
 
 if __name__ == "__main__":
