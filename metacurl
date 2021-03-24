@@ -310,12 +310,12 @@ class singlefile(object):
             ANSI_EL = ''
             CR = '\n'
         else:
-            ANSI_OFF = b'\033[m\033[K'
-            ANSI_RED = b'\033[31m'
-            ANSI_GREEN = b'\033[32m'
-            ANSI_YEL = b'\033[38;5;11m'
-            ANSI_EL = b'\033[K' # tput el
-            CR = b'\r'
+            ANSI_OFF = '\033[m\033[K'
+            ANSI_RED = '\033[31m'
+            ANSI_GREEN = '\033[32m'
+            ANSI_YEL = '\033[38;5;11m'
+            ANSI_EL = '\033[K' # tput el
+            CR = '\r'
 
         if '#' in url:
             ## TODO parse fragment for hash spec
