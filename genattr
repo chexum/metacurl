@@ -98,14 +98,17 @@ for filename in args:
   if 'user.bitprint' not in tags:
     print >>sys.stderr,'*',filename,"had no bitprint"
     # XXX unescaped filename
-    proc_collider=subprocess.Popen(['bitcollider','--crc32','--md5','-p','-a','--',safer_filename],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-    (outln,errln)=proc_collider.communicate()
-    proc_collider.wait()
-    for bc_line in outln.split('\n'):
-      try:
-        (k,v)=bc_line.split('=',1)
-        tags[old_bitcollider_tags[k]]=v.lower()
-      except:
+    try:
+        proc_collider=subprocess.Popen(['bitcollider','--crc32','--md5','-p','-a','--',safer_filename],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+        (outln,errln)=proc_collider.communicate()
+        proc_collider.wait()
+        for bc_line in outln.split('\n'):
+          try:
+            (k,v)=bc_line.split('=',1)
+            tags[old_bitcollider_tags[k]]=v.lower()
+          except:
+            pass
+    except (FileNotFoundError):
         pass
 
   # XXX hardcoded
