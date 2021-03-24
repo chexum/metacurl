@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 from optparse import OptionParser
 import xattr
@@ -90,18 +90,19 @@ for filename in args:
   tags={}
   for t in all_tags:
     try:
-      tags[t] = xattr.getxattr(filename,t)
+      tags[t] = xattr.getxattr(filename,t).decode('UTF-8')
     except:
       pass
 
   # XXX hardcoded
   if 'user.bitprint' not in tags:
-    print >>sys.stderr,'*',filename,"had no bitprint"
+    print('*',filename,"had no bitprint", file=sys.stderr)
     # XXX unescaped filename
     try:
         proc_collider=subprocess.Popen(['bitcollider','--crc32','--md5','-p','-a','--',safer_filename],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
         (outln,errln)=proc_collider.communicate()
         proc_collider.wait()
+        outln = outln.decode('ASCII')
         for bc_line in outln.split('\n'):
           try:
             (k,v)=bc_line.split('=',1)
@@ -113,7 +114,7 @@ for filename in args:
 
   # XXX hardcoded
   if 'user.origfilename' not in tags:
-    print >>sys.stderr,'*',filename,"had no origfilename"
+    print('*',filename,"had no origfilename", file=sys.stderr)
     if '/' in filename:
       tags['user.origfilename']=filename.rsplit('/',1)[1]
     else:
@@ -129,11 +130,12 @@ for filename in args:
   # other hashes
   for d in openssl_tags:
     if d not in tags:
-      print >>sys.stderr,'*',filename,"had no openssl",d
+      print('*',filename,"had no openssl",d, file=sys.stderr)
       # XXX unescaped filename
       proc_dgst = subprocess.Popen(['openssl','dgst','-r',openssl_tags[d],safer_filename],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
       (outln,errln)=proc_dgst.communicate()
       proc_dgst.wait()
+      outln = outln.decode('ASCII')
       hex = outln.split(' ')
       tags[d]=hex[0]
 
@@ -141,7 +143,7 @@ for filename in args:
   rhash_tpl=[]; rhash_arr=[]; rhash_type={}
   for d in rhash_tags:
     if d not in tags:
-      print >>sys.stderr,'*',filename,"had no rhash",d
+      print('*',filename,"had no rhash",d, file=sys.stderr)
       rhash_arr.append(d)
       rhash_tpl.append('%{'+rhash_tags[d]+'}')
   if len(rhash_tpl)>0:
@@ -149,10 +151,11 @@ for filename in args:
     proc_dgst = subprocess.Popen(['rhash','-p',' '.join(rhash_tpl),'--',safer_filename],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
     (outln,errln)=proc_dgst.communicate()
     proc_dgst.wait()
+    outln=outln.decode('ASCII')
     for n,h in zip(rhash_arr,outln.split(' ')):
       # XXX only if mismatch - but we don't fetch it if dupe
       if n in tags:
-        print >>sys.stderr,'* dup %s %s for %s'%(n,h,filename)
+        print('* dup %s %s for %s'%(n,h,filename), file=sys.stderr)
       tags[n]=h;
       if n == 'user.sha256':
         tags['user.shatag.sha256']=h
@@ -160,7 +163,7 @@ for filename in args:
   # jpeg basic data
   if 'user.first20' in tags and re.match('^ffd8ff',tags['user.first20']):
     if 'user.imagewidth' not in tags:
-      print >>sys.stderr,'*',safer_filename,"had no jpeg dimension"
+      print('*',safer_filename,"had no jpeg dimension", file=sys.stderr)
       proc_imginfo = subprocess.Popen(['imginfo','-f',safer_filename],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
       (outln,errln) = proc_imginfo.communicate()
       proc_imginfo.wait()
@@ -173,7 +176,7 @@ for filename in args:
         raise 'Whatever'
 
     if 'user.exifman' not in tags:
-      print >>sys.stderr,'*',safer_filename,"had no jpeg exif"
+      print('*',safer_filename,"had no jpeg exif", file=sys.stderr)
       lat_s=None; lat=None; lon_s=None; lon=None
 
       proc_exif = subprocess.Popen(['exif','-m','--no-fixup',safer_filename],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
@@ -219,13 +222,13 @@ for filename in args:
 
   for k in all_tags:
     if all_tags[k] == '*': continue
-    if k not in tags: print >>sys.stderr,"* no",k,"for",filename
+    if k not in tags: print("* no",k,"for",filename, file=sys.stderr)
 
-  print '#','file:',filename
+  print('#','file:',filename)
   for i in sorted(tags.keys()):
-    print '%s="%s"'% (i,tags[i],)
+    print('%s="%s"'% (i,tags[i],))
   else:
-    print
+    print()
 
 # attrs=xattr.list(f)
 # for i in attrs:
