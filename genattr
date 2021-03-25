@@ -6,6 +6,7 @@ import sys
 import re
 import subprocess
 import os.path
+import base64,binascii
 
 parser = OptionParser()
 #parser.add_option("-m","--md5",action="store_const", const="user.md5", dest="hashtype", default="user.sha1")
@@ -127,7 +128,7 @@ for filename in args:
   except:
     pass
 
-  # other hashes
+  # other hashes, mostly obsoleted by rhash
   for d in openssl_tags:
     if d not in tags:
       print('*',filename,"had no openssl",d, file=sys.stderr)
@@ -140,10 +141,19 @@ for filename in args:
       tags[d]=hex[0]
 
   #rhash -p "crc32:%{crc32} sha1:%{sha1} blake2b:%{blake2b}" test
+  # add tth + sha1 if bitprint needed
   rhash_tpl=[]; rhash_arr=[]; rhash_type={}
+  if 'user.bitprint' not in tags:
+      if 'user.sha1' not in tags:
+          #tags['user.sha1']='+sha1'
+          rhash_tags['user.sha1']='sha1'
+      if 'user.tth' not in tags:
+          #tags['user.tth']='+tth'
+          rhash_tags['user.tth']='tth'
   for d in rhash_tags:
     if d not in tags:
-      print('*',filename,"had no rhash",d, file=sys.stderr)
+      if d != 'user.tth':
+          print('*',filename,"had no rhash",d, file=sys.stderr)
       rhash_arr.append(d)
       rhash_tpl.append('%{'+rhash_tags[d]+'}')
   if len(rhash_tpl)>0:
@@ -159,6 +169,22 @@ for filename in args:
       tags[n]=h;
       if n == 'user.sha256':
         tags['user.shatag.sha256']=h
+
+    # bitprint without bitcollider
+    if 'user.tth' in tags:
+        if 'user.sha1' in tags and 'user.bitprint' not in tags:
+            h1=base64.b32encode(binascii.unhexlify(tags['user.sha1'])).decode('ASCII').lower()
+            h2=tags['user.tth'].lower()
+            tags['user.bitprint']='%s.%s'%(h1,h2)
+        del tags['user.tth']
+
+  if 'user.length' not in tags:
+    tags['user.length'] = "%d"%(os.stat(safer_filename)[6])
+
+  if 'user.first20' not in tags:
+     with open(safer_filename,'rb') as f:
+        f20=f.read(20)
+        tags['user.first20'] = binascii.hexlify(f20).decode('ASCII').lower()
 
   # jpeg basic data
   if 'user.first20' in tags and re.match('^ffd8ff',tags['user.first20']):
