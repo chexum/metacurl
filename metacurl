@@ -853,6 +853,16 @@ class singlefile(object):
         if self.filename[-4:].upper() == '.PHP':
             sys.stderr.write("!! not saving, .php extension\n")
             return None
+
+        first20 = None
+        with open(self.tmpname,'rb') as checkf:
+            first20 = checkf.read(20)
+        try:
+            if '<!DOCTYPE' in first20.decode('utf-8').upper():
+                self.mimetype = 'text/html'
+        except UnicodeDecodeError:
+            pass
+
         if self.mimetype and self.mimetype.upper() == 'TEXT/HTML' and not self.allow_text:
             sys.stderr.write("!! not saving, MIME type is %s%s\n" %
                              (self.mimetype, ANSI_OFF))
@@ -869,6 +879,8 @@ class singlefile(object):
                 self.mimetype='application/x-xz'
             elif self.filename.split('.')[-1].upper() == 'BZ2':
                 self.mimetype='application/x-bzip2'
+            elif self.filename.split('.')[-1].upper()[:6] == 'SHA256':
+                self.mimetype='application/octet-stream'
             elif self.filename.split('.')[-1].upper() == 'ADF':
                 if self.filesize < 819200:
                     sys.stderr.write("!! not saving, ADF %s size %d\n"%(self.filename,self.filesize,))
@@ -877,13 +889,11 @@ class singlefile(object):
                 if self.filesize < 8192:
                     sys.stderr.write("!! not saving, PDF %s size %d\n"%(self.filename,self.filesize,))
                     return None
-                with open(self.tmpname) as checkf:
-                    k = checkf.read(32)
-                    if '%PDF' in k:
-                        pass
-                    if '<!DOCTYPE' in k:
-                        sys.stderr.write('!! not saving, %s looks HTML instead of PDF\n'%(self.filename,))
-                        return None
+                if '%PDF' in first20.decode('utf-8').upper():
+                    pass
+                if '<!DOCTYPE' in first20.decode('utf-8').upper():
+                    sys.stderr.write('!! not saving, %s looks HTML instead of PDF\n'%(self.filename,))
+                    return None
                     checkf.close()
                 self.mimetype='application/pdf'
             elif self.filename.split('.')[-1].upper(
@@ -896,6 +906,13 @@ class singlefile(object):
                 sys.stderr.write("!! not saving, MIME type is %s (%s) %s\n" %
                                  (self.mimetype, self.filename, ANSI_OFF))
                 return None
+
+
+        # swift-swift-5.0.0.tar.gz really?
+        splitfnarr=filename.split('-',2)
+        if len(splitfnarr)>2:
+            if splitfnarr[0] == splitfnarr[1]:
+                filename='-'.join(splitfnarr[1:])
 
         # postponing these - the temp file won't be seen as proper
         if self.stamp:
