@@ -1,4 +1,4 @@
 -- downloading 011_wrongdate.out 
 
 011_wrongdate.out OK (309)
-{"file":"011_wrongdate.out","size":309,"stamp":null,"md5":"0c3a661de1e2d9e7b324a029abedc65f","sha1":"d213fc20e3956ecd5dfe34878fae101e119f64f9","sha256":"6d16cb7b5a45a16ab57867bf5796dd51d13d619c24c9a095c4a406f14144c19f","githash":"82887088f5b17bb6375ede007dc3ea53b7eccfae","mimetype":"application/binary","charset":null,"encoding":null,"url":"011_wrongdate.out","stored":null,"server":"nginx","etag":null}
+{"file":"011_wrongdate.out","size":309,"stamp":-58920001834,"md5":"0c3a661de1e2d9e7b324a029abedc65f","sha1":"d213fc20e3956ecd5dfe34878fae101e119f64f9","sha256":"6d16cb7b5a45a16ab57867bf5796dd51d13d619c24c9a095c4a406f14144c19f","githash":"82887088f5b17bb6375ede007dc3ea53b7eccfae","mimetype":"application/binary","charset":null,"encoding":null,"url":"011_wrongdate.out","stored":null,"server":"nginx","etag":null}

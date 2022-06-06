@@ -7,6 +7,7 @@ allgood=0
 # make sure we don't leave garbage around
 unset FLDB
 unset FLMETADIR
+export TZ=UTC
 
 export FLMETADIR=$(pwd)/.fl
 mkdir -p $FLMETADIR
