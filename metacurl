@@ -31,13 +31,13 @@ def set_extended_attr(fno,aname,avalue):
         xattr.set(fno,'user.%s'%(aname,),avalue.encode('utf-8'))
         return
     except:
-        pass
-
-    # obsolete one?
-    try:
-        xattr._fsetxattr(fno,'user.%s'%(aname,),avalue.encode('utf-8'))
-    except:
-        print("fsetxattr %s failed"%(aname,))
+        try:
+            # XXX This is for Linux, OS X has a different module
+            # and not with each installed python version - need to figure it out
+            xattr._fsetxattr(fno,'user.%s'%(aname,),avalue.encode('utf-8'))
+        except:
+    #       print("fsetxattr %s failed"%(aname,))
+            pass
 
 # environment name for user's meta filelist directory
 FL = 'FLMETADIR'
@@ -119,7 +119,9 @@ class http_headerblock(object):
         try:
             for h in self.headers[name.upper()]:
                 # review rfc6266
-                # handle semicolons in quotes ;token="what;ever"
+                # XXX handle semicolons in quotes ;token="what;ever"
+                # XXX handle quotes?
+                #okens = [t.strip('\x20\x09') for t in h.split(';')]
                 tokens = tokensplit(h)
                 line = []
                 for t in tokens:
@@ -310,12 +312,12 @@ class singlefile(object):
             ANSI_EL = ''
             CR = '\n'
         else:
-            ANSI_OFF = '\033[m\033[K'
-            ANSI_RED = '\033[31m'
-            ANSI_GREEN = '\033[32m'
-            ANSI_YEL = '\033[38;5;11m'
-            ANSI_EL = '\033[K' # tput el
-            CR = '\r'
+            ANSI_OFF = b'\033[m\033[K'
+            ANSI_RED = b'\033[31m'
+            ANSI_GREEN = b'\033[32m'
+            ANSI_YEL = b'\033[38;5;11m'
+            ANSI_EL = b'\033[K' # tput el
+            CR = b'\r'
 
         if '#' in url:
             ## TODO parse fragment for hash spec
@@ -336,9 +338,11 @@ class singlefile(object):
             elif m.group(1).upper() == 'SHA256':
                 hash = m.group(2)
                 if len(hash)<64:
-                    self.expected_sha256=binascii.hexlify(base64.b64decode(hash)).lower()
+                    self.expected_sha256=binascii.hexlify(base64.b64decode(hash)).decode('ASCII').lower()
                 else:
                     self.expected_sha256=hash.lower()
+
+        # XXX also - multihash qm
 
         # save original url and extract possible filename (without parameters)
         if not self.orig_url:
@@ -506,6 +510,7 @@ class singlefile(object):
                         arr = l[3].strip().split("'")
                         if len(arr) > 2:
                             z = arr[2].strip('\x27\x22\x09\x20')
+#                   z = bytearray(z).decode('utf-8')
                     if z:
                         z.replace('%20','_')
                         self.filename = z
@@ -514,7 +519,7 @@ class singlefile(object):
                 pass
 
             ## debugging to seek for new headers containing information
-            for n in hdr.headers:
+            for n in sorted(hdr.headers):
                 if ('LANGUAGE' in n) or \
                    (n[0:6] in ['ACCESS','ACCEPT','CACHE-','X-GUPL','X-CACH','PROXY-','X-FRAM','X-TIME']) or \
                    (n in ['SERVER','AGE','ALT-SVC','CONNECTION','VARY','CF-RAY','PRAGMA','VIA']) or \
@@ -534,6 +539,9 @@ class singlefile(object):
             ## -- http://central.maven.org/maven2/com/lowagie/itext/2.1.7/itext-2.1.7.jar -- 200
             # X-CHECKSUM-SHA1 892bfb3e97074a61123b3b2d7caa2db112750864
             # X-CHECKSUM-MD5 7587a618197a065eac4a453d173d4ed6
+            # XXX sha256
+            # X-CHECKSUM-SHA2 712913a083f07dbacfdf5686364127ba8d457418458df0f6b899de8efa3d91af
+            # X-AMZ-META-S3CMD-ATTRS atime:1554763479/ctime:1554763036/gid:100/gname:users/md5:b5beced41ccb9db2cd567e97d18cf5bf/mode:33188/mtime:1554762731/uid:1000/uname:andy
             if 'X-CHECKSUM-SHA1' in hdr.headers:
                 d = hdr.get_single_header('X-Checksum-SHA1').lower()
                 if self.expected_sha1:
@@ -553,6 +561,8 @@ class singlefile(object):
 
             ## http://download.system-cfg.com/f.php?h=2Z0Khs23&d=1
             ## CONTENT-MD5 6c3156d38333f715ad5cc0ed73feba19
+            # XXX -- http://hackage.haskell.org/package/xmonad-0.15/xmonad-0.15.tar.gz -- 200
+            # CONTENT-MD5 OkX/s6RkgtqNlIc8SKed+g==
             if 'CONTENT-MD5' in hdr.headers:
                 d = hdr.get_single_header('Content-MD5')
                 if len(d) == 32:
@@ -569,17 +579,21 @@ class singlefile(object):
                 for h in hdr.headers['X-GOOG-HASH']:
                     (t, d) = h.split('=', 1)
                     if t.strip().upper() == 'MD5':
-                        dig = binascii.hexlify(base64.b64decode(d.strip()))
+                        dig = binascii.hexlify(base64.b64decode(d.strip())).decode('ASCII').lower()
                         if self.expected_md5:
                             if self.expected_md5 != dig:
                                 sys.stderr.write(
                                     "!! different MD5 digests to check\n")
                         else:
-                            self.expected_md5 = dig.decode('ASCII')
+                            self.expected_md5 = dig
             except (KeyError, ValueError, TypeError):
                 pass
 
             # hack - sometimes MD5 is part of the etag
+            # < Last-Modified: Tue, 18 Sep 2018 06:30:07 GMT
+            # < ETag: "eaf82392603b92dae632cc0f356b08aa:1537252207"
+            # XXX also try fetching stamp if not in last-modified
+
             try:
                 self.etag = hdr.get_single_header('Etag').strip("\x22\x27")
                 m = re.match('([0-9a-fA-F]+)($|:)', self.etag)
@@ -783,12 +797,12 @@ class singlefile(object):
             ANSI_EL = ''
             CR = '\n'
         else:
-            ANSI_OFF = '\033[m\033[K'
-            ANSI_RED = '\033[31m'
-            ANSI_GREEN = '\033[32m'
-            ANSI_YEL = '\033[38;5;11m'
-            ANSI_EL = '\033[K' # tput el
-            CR = '\r'
+            ANSI_OFF = b'\033[m\033[K'
+            ANSI_RED = b'\033[31m'
+            ANSI_GREEN = b'\033[32m'
+            ANSI_YEL = b'\033[38;5;11m'
+            ANSI_EL = b'\033[K' # tput el
+            CR = b'\r'
 
         if self.error and not debug:
             sys.stderr.write("!! cannot save, %s%s%s\n" %
@@ -828,6 +842,7 @@ class singlefile(object):
         if self.mimetype and self.mimetype.upper() == 'TEXT/HTML' and not self.allow_text:
             sys.stderr.write("!! not saving, MIME type is %s%s\n" %
                              (self.mimetype, ANSI_OFF))
+            # XXX grep WARNING
             return None
         if self.mimetype and self.mimetype.upper()[0:5] == 'TEXT/' and not self.allow_text:
         # -- https://gnupg.org/ftp/gcrypt/npth/npth-1.5.tar.bz2 -- 200
@@ -836,12 +851,29 @@ class singlefile(object):
                 pass
             elif self.filename[-7:].upper() == '.TAR.GZ':
                 self.mimetype='application/x-gzip'
+            elif self.filename[-7:].upper() == '.TAR.XZ':
+                self.mimetype='application/x-xz'
             elif self.filename.split('.')[-1].upper() == 'BZ2':
                 self.mimetype='application/x-bzip2'
+            elif self.filename.split('.')[-1].upper() == 'ADF':
+                if self.filesize < 819200:
+                    sys.stderr.write("!! not saving, ADF %s size %d\n"%(self.filename,self.filesize,))
+                self.mimetype='application/octet-stream'
             elif self.filename.split('.')[-1].upper() == 'PDF':
+                if self.filesize < 8192:
+                    sys.stderr.write("!! not saving, PDF %s size %d\n"%(self.filename,self.filesize,))
+                    return None
+                with open(self.tmpname) as checkf:
+                    k = checkf.read(32)
+                    if '%PDF' in k:
+                        pass
+                    if '<!DOCTYPE' in k:
+                        sys.stderr.write('!! not saving, %s looks HTML instead of PDF\n'%(self.filename,))
+                        return None
+                    checkf.close()
                 self.mimetype='application/pdf'
             elif self.filename.split('.')[-1].upper(
-            ) not in ['SIG', 'SIGN', 'PUB', 'ASC', 'TXT', 'C', 'H', 'CSV', 'S', 'ASM', 'MD5','SHA1','SHA256','SHA512','DIFF','PATCH']:
+            ) not in ['SIG', 'SIGN', 'PUB', 'ASC', 'TXT', 'C', 'H', 'CSV', 'S', 'ASM', 'MD5','SHA1','SHA256','SHA512','DIFF','PATCH','SUM','SUMS']:
                 sys.stderr.write("!! not saving, MIME type is %s (%s) %s\n" %
                                  (self.mimetype, self.filename, ANSI_OFF))
                 return None
@@ -891,12 +923,13 @@ class singlefile(object):
             good.append('OK')
             ok = ' '.join(good)
         # xxx no LF when debug
+        if not self.filesize:
+            self.filesize = 0
         sys.stderr.write(
             "%s%s%s%s%s %s%s%s (%d)%s\n" %
             (CR, ("\n" if len(bad) and not debug else ""), ANSI_YEL, filename, ANSI_OFF, report_color, ok, ANSI_OFF, self.filesize, ANSI_EL))
 
-        ## TODO avoid if duplicate
-        ## 1/3 write .meta as text with some fields
+        ## 1/4 write .meta as text with some fields
         ## order cannot be changed - append only (or rather ignore)
 
         ## don't store extra precision if not present
@@ -929,7 +962,61 @@ class singlefile(object):
                self.orig_url,self.stored,self.server,self.etag]])+"\n")
             f.close()
 
-        ## 2/3 write per-user/host meta - may fail silently
+        ## 2/4 avoid further records if duplicate
+        ## todo - make unique file before saving
+        conn, cur = None, None
+        try:
+            if conn == None:
+                conn = sqlite3.connect(os.environ['FLDB'])
+                cur = conn.cursor()
+        except:
+            conn, cur = None, None
+
+
+        # XXX check duplicate in zip
+        # Archive:  whatever.zip
+        # Length   Method    Size  Ratio   Date   Time   CRC-32    Name
+        # --------  ------  ------- -----   ----   ----   ------    ----
+        # 11984777  Defl:X 11366006   6%  08-11-11 17:23  6111b8e4  whatever.pdf
+        # --------          -------  ---                            -------
+        # 11984777         11366006   6%                            1 file
+        # genattr whatever.pdf
+        # user.crc32="6111b8e4"
+        # user.length="11984777"
+
+        if conn:
+            res = conn.execute("""
+            select path,fn from meta where
+            md5 = ?
+            """,(self.hashes[0],))
+            if res:
+                rescnt=0
+                for q in res:
+                    if rescnt == 0:
+                        dupmsg = 'not storing dup of %s in %s'%(q[1],q[0],)
+                        # XXX rename? check hash db NNN1
+                    rescnt = rescnt+1
+                if rescnt > 1:
+                    dupmsg = '%s (%d in total)'%(dupmsg,rescnt,)
+                if rescnt:
+                    if filename[:4] == 'dup.':
+                        print('!!',dupmsg)
+                    else:
+                        dupprefix = 'dup.'
+                        try:
+                            # XXX check1 if duplicate by hash - try to not save
+                            # break out via OSError if file with that name does not exist
+                            os.stat(dupprefix + filename)
+                            dupprefix = 'dup.%d.' % (os.getpid(),)
+                            os.stat(dupprefix + filename)
+                            return None
+                        except OSError:
+                            pass
+                        os.rename(filename,dupprefix+filename)
+                        print('!!',dupmsg,'--',dupprefix+filename)
+                    return None
+
+        ## 3/4 write per-user/host meta - may fail silently
         ## can be extended interchangeably
         try:
             year = time.gmtime(self.stored).tm_year
@@ -951,10 +1038,11 @@ class singlefile(object):
         if debug:
             sys.stderr.write("%s\n" % (json.dumps(d, cls=MetaFLJSONEncoder)))
 
-        ## 3/3 update database
+        ## 4/4 update database
         try:
-            conn = sqlite3.connect(os.environ['FLDB'])
-            cur = conn.cursor()
+            if conn == None:
+                conn = sqlite3.connect(os.environ['FLDB'])
+                cur = conn.cursor()
         except:
             conn, cur = None, None
 
@@ -968,6 +1056,8 @@ class singlefile(object):
             self.mimetype,self.charset,self.encoding,self.orig_url,\
             self.stored,self.server,self.etag))
             conn.commit()
+
+        if conn:
             conn.close()
 
     def __del__(self):

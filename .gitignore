@@ -4,6 +4,5 @@ robots.txt
 .meta
 .status.*
 .build
-test
 tests/*.out*
 tests/*.tm[p1]
