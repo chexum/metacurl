@@ -280,7 +280,7 @@ class singlefile(object):
     Retrieve a single file by using curl and inspecting the output
     """
 
-    def __init__(self, url, curlopts, debug=False, text=False):
+    def __init__(self, url, curlopts, debug=False, text=False, auth=None):
         self.error = "not initialized"
         self.progress = "downloading"
         self.orig_url = ""
@@ -396,9 +396,6 @@ class singlefile(object):
                 all_args.append('-c')
                 all_args.append(cookie)
 
-            all_args.append('--')
-            all_args.append(url)
-
             ### ftp has metadata, but curl does not pass them - fake them here
             if url[:3] == 'ftp':
                 ftpconv = ''
@@ -406,10 +403,23 @@ class singlefile(object):
                 import ftplib
                 import urllib.parse
                 u = urllib.parse.urlparse(url)
+                netloc = u.netloc
+                auth_user = 'ftp'
+                auth_pass = 'ftp@'
+                if '@' in netloc:
+                    (a,l) = netloc.rsplit('@',1)
+                    netloc = l
+                    if ':' in a:
+                        (auth_user,auth_pass) = a.rsplit(':',1)
+                    else:
+                        auth_user = a
                 # ParseResult(scheme='ftp', netloc='atrey.karlin.mff.cuni.cz:21', path='/pub/linux/pci/pciutils-3.5.6.tar.gz.sign', params='', query='', fragment='')
+                all_args.append('-u')
+                all_args.append('%s:%s'%(auth_user,auth_pass))
+                url = 'ftp://%s%s'%(netloc,u.path.replace(' ','%20'))
                 try:
-                    ftpconn = ftplib.FTP(u.netloc)
-                    res = ftpconn.login()
+                    ftpconn = ftplib.FTP(netloc)
+                    res = ftpconn.login(auth_user, auth_pass)
                     print('* ftp',res.split("\n")[0])
                     # 230 Login successful.
                     if res[0] == '2':
@@ -437,13 +447,17 @@ class singlefile(object):
                     ftpconn.quit()
                     ftpconn = None
                     ftpconv = ftpconv + '\r\n'
+                    ftpconv = ftpconv.encode('UTF-8')
                 except ftplib.all_errors as e:
                     print('* ftp',e)
 
-                ftpstr = io.StringIO(ftpconv)
+                ftpstr = io.BytesIO(ftpconv)
                 hdr = http_headerblock(ftpstr)
             else:
                 hdr = None
+
+            all_args.append('--')
+            all_args.append(url)
 
             run_curl = subprocess.Popen(all_args, stdout=subprocess.PIPE)
             #sys.stderr.write("\n"+' | '.join(all_args)) # XXX
@@ -452,14 +466,14 @@ class singlefile(object):
                 hdr = http_headerblock(run_curl.stdout)
 
             # if via proxy, there might be a first HTTP response about the connection
-            if None != hdr.lines and len(hdr.lines) == 0 and hdr.status_code == 200:
+            if hdr.lines is not None and hdr.status_code is not None and len(hdr.lines) == 0 and hdr.status_code == 200:
                 hdr = http_headerblock(run_curl.stdout)
-            elif hdr.status_code == 200 or hdr.status_code == 150:
+            elif hdr.status_code is not None and (int(hdr.status_code) == 200 or int(hdr.status_code) == 150):
                 if not debug:
                     sys.stderr.write("\r-- %s -- %s%s%s\n" %
                                      (url, ANSI_GREEN, str(hdr.status_code),
                                       ANSI_OFF))  # XXX
-            elif hdr.status_code > 305:
+            elif hdr.status_code is not None and int(hdr.status_code) > 305:
                 sys.stderr.write("\r-- %s -- %s%s%s\n" % (
                     url, ANSI_RED, str(hdr.status_code), ANSI_OFF))  # XXX
             else:
