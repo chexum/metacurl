@@ -44,54 +44,63 @@ def metaloc(db_conn,cwd,fn):
     statinfo = os.stat(fn)
     where={}; file_size=statinfo.st_size; file_time=statinfo.st_mtime;
 
-    cur.execute("select rowid,fn,path,md5,githash,size,strftime('%s',stamp) from meta where fn = ?",(fn,))
+    cur.execute("select rowid,fn,path,md5,githash,size,b2b,"
+                "strftime('%s',stamp) as time "
+                "from meta where fn = ?",(fn,))
     # XXX discover case-different names
     for f in cur.fetchall():
         # XXX multiple
-        where[f[2]]=fn
+        where[f['fn']]=fn
 
 
     # if multiple locations OR single but different location
     # or different size or different time
     # or needs githash to recompute
     if len(where) != 1 or cwd not in where or \
-            maybe_int(file_size) != maybe_int(f[4]) or \
-            maybe_int(file_time) < 3601 or maybe_int(f[5]) != maybe_int(file_time) or \
-            f[3] is None:
+            maybe_int(file_size) != maybe_int(f['size']) or \
+            maybe_int(file_time) < 3601 or \
+            maybe_int(file_time) != maybe_int(f['stamp']) or \
+            f['githash'] is None or \
+            f['newb2b'] is None:
         newmd5 = hashlib.new('md5')
-        newsha256 = hashlib.new('sha256')
         newsha1 = hashlib.new('sha1')
         newgith = hashlib.new('sha1')
+        newsha256 = hashlib.new('sha256')
+        newb2b = hashlib.new('blake2b')
         newgith.update(b"blob %d\0"%(file_size,))
 
+    # XXX may not be readable
     with open(fn,"rb") as f:
         for b in f:
             newmd5.update(b)
             newsha1.update(b)
-            newsha256.update(b)
             newgith.update(b)
+            newsha256.update(b)
+            newb2b.update(b)
 
         file_md5 = newmd5.hexdigest()
-        file_sha256 = newsha256.hexdigest()
         file_sha1 = newsha1.hexdigest()
         file_gith = newgith.hexdigest()
+        file_sha256 = newsha256.hexdigest()
+        file_b2b = newb2b.hexdigest()
 
-#        print ("Z",fn.decode('utf-8'))
-#        print ("Z",file_md5)
-#        print ("Z",file_sha1)
-#        print ("Z",file_gith,"blob %d"%(file_size,))
-
-        cur.execute("select fn,path,md5,sha1,githash,strftime('%s',stamp),strftime('%s',stored) from meta where sha256=?",(file_sha256,))
+        cur.execute("select fn,path,md5,sha1,githash,sha256,b2b,"
+                    "strftime('%s',stamp) as stamp,"
+                    "strftime('%s',stored) as stored "
+                    "from meta where ? in (md5,sha256) or ? in (md5,sha256)",
+                    (file_md5,file_sha256,))
         row = cur.fetchone()
         if row is None:
             sb=os.stat(fn)
             s=sb.st_size
-            print(("* %8s %s not in db (%s)?" % (s, fn,file_sha256,)))
+            print(("* %8s %s not in db (%s)?" % (s, fn,file_md5,)))
             return
 
-        [x_fn,x_path,x_md5,x_sha1,x_githash,x_stamp,x_stored]=row
-#       print (x_fn,x_path) - x_fn is sometimes stored as blob
-#        x_path=x_path
+        [x_fn,x_path,x_md5,x_sha1,x_githash,x_sha256,x_b2b,x_stamp,x_stored]=row
+
+        if x_sha256 != file_sha256:
+            print(("!!! %s sha256 does not match db (%s)"%(file_sha256,)))
+            print
 
         if x_sha1 != file_sha1:
             print(("??? %s sha1 does not match db (%s)"%(file_sha1,)))
@@ -102,24 +111,34 @@ def metaloc(db_conn,cwd,fn):
 
         if abs(maybe_int(x_stamp)-maybe_int(file_time)) > 120:
             print(fn,"time mismatch",(x_stamp),'disk',(file_time))
-            cur.execute("update meta set stamp=datetime(?,'unixepoch') where sha256=?",(maybe_int(x_stamp),file_sha256,))
+            cur.execute("update meta set stamp=datetime(?,'unixepoch') "
+                        "where sha256 = ?",(maybe_int(x_stamp),file_sha256,))
             os.utime(fn, (maybe_int(x_stamp), maybe_int(x_stamp)))
             db_conn.commit()
 
         if x_githash == None:
-            cur.execute("update meta set githash=? where sha256=?",(file_gith,file_sha256))
+            cur.execute("update meta set githash=? "
+                        "where sha256=?",(file_gith,file_sha256))
             db_conn.commit()
-            print(fn,"added githash",file_gith)
+            print('+',fn,"added githash",file_gith)
+        if x_b2b == None and file_b2b is not None:
+            cur.execute("update meta set b2b=? "
+                        "where sha256=?",(file_b2b,file_sha256))
+            db_conn.commit()
+            print(f'+ {fn} added blake2b hash')
 
         if x_md5 == file_md5 and ( x_path != cwd or x_fn != fn):
-#           print (x_path,x_fn,cwd,fn)
-            if os.path.isfile(os.path.join(x_path,x_fn)) and os.path.isfile(os.path.join(cwd,fn)):
+            if os.path.isfile(os.path.join(x_path,x_fn)) and \
+               os.path.isfile(os.path.join(cwd,fn)):
+                # XXX explain/check
                 print(os.path.join(x_path,x_fn),'still here',cwd)
             else:
-                cur.execute("update meta set path=?,fn=? where sha256=?",(cwd,fn,file_sha256,))
+                cur.execute("update meta set path=?,fn=? where "
+                            "sha256 = ?",(cwd,fn,file_sha256,))
                 db_conn.commit()
+                # XXX explain/check
                 if len(where)>1:
-                    print(fn,"some moved here",list(where.keys()))
+                    print(fn,"+ some moved here",list(where.keys()))
                 else:
                     if fn == x_fn:
                         print(fn,'now here')
@@ -135,6 +154,7 @@ def main(argv=None):
     db_file = os.environ['FLDB']
 
     with sqlite.connect(db_file) as db_conn:
+        db_conn.row_factory = sqlite.Row
         cwd = os.getcwd()
         arr = argv[1:]
         if len(arr) == 0:
