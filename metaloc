@@ -16,9 +16,16 @@ def appfind(db_conn,arg,max_rows=11,try_hash_min=6):
 
     cur = db_conn.cursor();
     if re.search('^[0-9a-fA-F]{%d,}$'%(try_hash_min,),arg):
-        cur.execute("select path,fn,md5,sha1,sha256 from meta where md5||':'||sha1||':'||sha256 like ? order by stamp desc limit ?",('%'+arg+'%',max_rows,))
+        # hashes OR name
+        cur.execute("select path,fn,md5,sha1,sha256 from meta where "
+                    "fn||':'||md5||':'||sha1||':'||sha256 like ? "
+                    "order by stamp desc limit ?",
+                    ('%'+arg+'%',max_rows,))
     else:
-        cur.execute('select path,fn,md5,sha1,sha256 from meta where fn like ? order by stamp desc limit ?',(arg+'%',max_rows,))
+        # name only
+        cur.execute("select path,fn,md5,sha1,sha256 from meta where "
+                    "fn like ? order by stamp desc limit ?",
+                    (arg+'%',max_rows,))
 
         result = cur.fetchall()[0:max_rows]
 
