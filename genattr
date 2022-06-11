@@ -205,42 +205,45 @@ for filename in args:
       print('*',safer_filename,"had no jpeg exif", file=sys.stderr)
       lat_s=None; lat=None; lon_s=None; lon=None
 
-      proc_exif = subprocess.Popen(['exif','-m','--no-fixup',safer_filename],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-      (outln,errln) = proc_exif.communicate()
-      proc_exif.wait()
-      for exif_line in outln.split('\n'):
-        try:
-          (k,v)=exif_line.split('\t',1)
-          if k == 'Manufacturer':
-            tags['user.exifman']=v.strip()
-          elif k == 'Model':
-            tags['user.exifmodel']=v.strip()
-          elif k in ['Date and Time','Date and Time (original)','Date and Time (digitized)']:
-            (d,t)=v.split(' ',1)
-            if 'user.exifdate' not in tags:
-              tags['user.exifdate']='%s-%s-%s' % (d[0:4],d[5:7],d[8:10])
-            if 'user.exiftime' not in tags:
-              tags['user.exiftime']='%s:%s:%s' % (t[0:2],t[3:5],t[6:8])
-          elif k == 'GPS date':
-            tags['user.exifdate']='%s-%s-%s' % (v[0:4],v[5:7],v[8:10])
-          elif k == 'GPS time':
-            tags['user.exiftime']='%s:%s:%s' % (v[0:2],v[3:5],v[6:8])
-          elif k in ['North or South Latitude','Latitude','East or West Longitude','Longitude',]:
-            if k == 'North or South Latitude':
-              if v in ['N','n']: lat_s=''
-              else: lat_s='-'
-            if k == 'East or West Longitude':
-              if v in ['E','e']: lon_s='?'
-              else: lon_s='-'
-            if k == 'Latitude':
-              lat = degnorm(v)
-            if k == 'Longitude':
-              lon = degnorm(v)
-            if lat_s is not None and lat is not None and lon_s is not None and lon is not None:
-              tags['user.exiflatlon']="%s%s,%s%s" % (lat_s,lat,lon_s,lon,)
-              lat_s=None; lat=None; lon_s=None; lon=None
-        except:
-          pass
+      try:
+        proc_exif = subprocess.Popen(['exif','-m','--no-fixup',safer_filename],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+        (outln,errln) = proc_exif.communicate()
+        proc_exif.wait()
+        for exif_line in outln.split('\n'):
+          try:
+            (k,v)=exif_line.split('\t',1)
+            if k == 'Manufacturer':
+              tags['user.exifman']=v.strip()
+            elif k == 'Model':
+              tags['user.exifmodel']=v.strip()
+            elif k in ['Date and Time','Date and Time (original)','Date and Time (digitized)']:
+              (d,t)=v.split(' ',1)
+              if 'user.exifdate' not in tags:
+                tags['user.exifdate']='%s-%s-%s' % (d[0:4],d[5:7],d[8:10])
+              if 'user.exiftime' not in tags:
+                tags['user.exiftime']='%s:%s:%s' % (t[0:2],t[3:5],t[6:8])
+            elif k == 'GPS date':
+              tags['user.exifdate']='%s-%s-%s' % (v[0:4],v[5:7],v[8:10])
+            elif k == 'GPS time':
+              tags['user.exiftime']='%s:%s:%s' % (v[0:2],v[3:5],v[6:8])
+            elif k in ['North or South Latitude','Latitude','East or West Longitude','Longitude',]:
+              if k == 'North or South Latitude':
+                if v in ['N','n']: lat_s=''
+                else: lat_s='-'
+              if k == 'East or West Longitude':
+                if v in ['E','e']: lon_s='?'
+                else: lon_s='-'
+                if k == 'Latitude':
+                  lat = degnorm(v)
+                if k == 'Longitude':
+                  lon = degnorm(v)
+              if lat_s is not None and lat is not None and lon_s is not None and lon is not None:
+                  tags['user.exiflatlon']="%s%s,%s%s" % (lat_s,lat,lon_s,lon,)
+                  lat_s=None; lat=None; lon_s=None; lon=None
+          except:
+            pass
+      except:
+        pass
 
   # picture file name should not be case sens
   if 'user.mimetype' in tags and re.match('^image/',tags['user.mimetype']):
